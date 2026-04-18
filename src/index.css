@@ -1,0 +1,189 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  /* OLF Blue — primary brand color (matches main website) */
+  --color-brand-50: #e8f4fd;
+  --color-brand-100: #c8e6fa;
+  --color-brand-200: #92cef5;
+  --color-brand-500: #309edd;
+  --color-brand-600: #2889c4;
+  --color-brand-700: #1f6fa0;
+  --color-brand-800: #185a82;
+  --color-brand-900: #0f3d5a;
+  /* OLF Green — accent/success */
+  --color-accent-500: #0ea03e;
+  --color-accent-600: #0b8532;
+  /* OLF Yellow — highlights/CTAs (matches main website) */
+  --color-highlight-400: #ffd900;
+  --color-highlight-500: #e6c300;
+  /* Sidebar - deep green to match brand */
+  --color-sidebar: #0a2614;
+  --color-sidebar-hover: #0f3a1f;
+  --color-sidebar-active: #0b5e28;
+}
+
+/* Tailwind's preflight already handles box-sizing and resets.
+   Do NOT add * { padding: 0 } — it overrides all Tailwind utility padding. */
+
+body {
+  font-family: var(--font-sans);
+  background-color: #f8f9fb;
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dark body,
+:where(.dark) body {
+  background-color: #0c1425;
+  color: #e2e8f0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+:where(.dark) ::-webkit-scrollbar-thumb { background: #3b4a63; }
+:where(.dark) ::-webkit-scrollbar-thumb:hover { background: #56687e; }
+
+.pdf-viewer iframe { border: none; border-radius: 8px; }
+
+/* ─── Global form input styles ─── */
+/* Wrapped in @layer base so Tailwind @layer utilities can override (pl-10, py-2, etc.) */
+@layer base {
+  .form-input,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  input[type="date"],
+  input[type="search"],
+  select,
+  textarea {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    background: white;
+    color: #1e293b;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    width: 100%;
+  }
+
+  :where(.dark) input[type="text"],
+  :where(.dark) input[type="email"],
+  :where(.dark) input[type="password"],
+  :where(.dark) input[type="tel"],
+  :where(.dark) input[type="url"],
+  :where(.dark) input[type="number"],
+  :where(.dark) input[type="date"],
+  :where(.dark) input[type="search"],
+  :where(.dark) select,
+  :where(.dark) textarea {
+    background: #162036;
+    color: #e2e8f0;
+    border-color: #334766;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: #309edd;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(48, 158, 221, 0.15);
+  }
+
+  :where(.dark) input:focus,
+  :where(.dark) select:focus,
+  :where(.dark) textarea:focus {
+    border-color: #309edd;
+    box-shadow: 0 0 0 3px rgba(48, 158, 221, 0.25);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+  }
+}
+
+/* Smooth transitions for interactive elements */
+a, button {
+  transition: all 0.15s ease;
+}
+
+/* Card hover utility */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+:where(.dark) .card-hover:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+/* Modal entrance animation */
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-modal-in {
+  animation: modal-in 0.2s ease-out;
+}
+
+/* ─── Print Styles ─── */
+@media print {
+  /* Hide everything except the print profile */
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide sidebar, header, nav, buttons, non-print content */
+  nav, aside, header {
+    display: none !important;
+  }
+
+  /* Show print-only content */
+  .print-profile {
+    display: block !important;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Remove shadows and borders on main content area */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  /* Prevent page breaks inside elements */
+  .print-profile img {
+    page-break-inside: avoid;
+  }
+
+  .print-profile h3 {
+    page-break-after: avoid;
+  }
+
+  /* Ensure images print with correct colors */
+  .print-profile img {
+    max-width: 100%;
+  }
+}
