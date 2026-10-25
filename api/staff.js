@@ -1,6 +1,24 @@
+import { createClient } from '@supabase/supabase-js';
+import { randomBytes } from 'crypto';
 import { supabase } from './_lib/supabase.js';
 import { setCors, handleOptions } from './_lib/cors.js';
 import { buildComplianceSummary, REQUIRED_DOCUMENT_TYPES, calcDocumentStatus } from './_lib/ndis.js';
+
+// ─── Role mapping: staff directory role → vault role ────────────────────────
+function mapToVaultRole(staffRole) {
+  const role = (staffRole || '').toLowerCase();
+  if (['manager', 'operations manager', 'general manager', 'director', 'admin'].some(r => role === r)) return 'admin';
+  if (['team leader', 'coordinator'].some(r => role === r)) return 'manager';
+  return 'staff'; // Support Worker, Nurse, Allied Health, etc.
+}
+
+function generatePassword(length = 12) {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
+  const bytes = randomBytes(length);
+  let pw = '';
+  for (let i = 0; i < length; i++) pw += chars[bytes[i] % chars.length];
+  return pw;
+}
 
 // ─── Allowed fields for staff update ─────────────────────────────────────────
 
@@ -21,6 +39,14 @@ const ALLOWED_FIELDS = [
   'emergency_contact_name',
   'emergency_contact_phone',
   'emergency_contact_relationship',
+  'ndis_clearance_number',
+  'pay_rate_weekday',
+  'pay_rate_saturday',
+  'pay_rate_sunday',
+  'sleepover_rate',
+  'abn',
+  'bsb',
+  'bank_account',
 ];
 
 // ─── GET Handlers ────────────────────────────────────────────────────────────
@@ -34,7 +60,11 @@ async function handleList(req, res) {
     .order('last_name', { ascending: true })
     .order('first_name', { ascending: true });
 
-  if (status) {
+  if (status === 'active') {
+    staffQuery = staffQuery.eq('status', 'active');
+  } else if (status === 'inactive') {
+    staffQuery = staffQuery.in('status', ['inactive', 'resigned', 'terminated']);
+  } else if (status) {
     staffQuery = staffQuery.eq('status', status);
   }
 
@@ -42,7 +72,7 @@ async function handleList(req, res) {
 
   if (staffError) {
     console.error('Staff query error:', staffError);
-    return res.status(500).json({ error: 'Failed to fetch staff', details: staffError.message });
+    return res.status(500).json({ error: 'Failed to fetch staff' });
   }
 
   if (!staffList || staffList.length === 0) {
@@ -58,7 +88,7 @@ async function handleList(req, res) {
 
   if (docsError) {
     console.error('Staff documents query error:', docsError);
-    return res.status(500).json({ error: 'Failed to fetch staff documents', details: docsError.message });
+    return res.status(500).json({ error: 'Failed to fetch staff documents' });
   }
 
   // Group documents by staff_id
@@ -102,7 +132,7 @@ async function handleGet(req, res) {
     if (staffError.code === 'PGRST116') {
       return res.status(404).json({ error: 'Staff member not found' });
     }
-    return res.status(500).json({ error: 'Failed to fetch staff member', details: staffError.message });
+    return res.status(500).json({ error: 'Failed to fetch staff member' });
   }
 
   // Fetch all documents for this staff member
@@ -115,7 +145,7 @@ async function handleGet(req, res) {
 
   if (docsError) {
     console.error('Documents fetch error:', docsError);
-    return res.status(500).json({ error: 'Failed to fetch staff documents', details: docsError.message });
+    return res.status(500).json({ error: 'Failed to fetch staff documents' });
   }
 
   const docs = documents || [];
@@ -165,7 +195,7 @@ async function handleCompliance(req, res) {
 
   if (staffError) {
     console.error('Staff query error:', staffError);
-    return res.status(500).json({ error: 'Failed to fetch staff', details: staffError.message });
+    return res.status(500).json({ error: 'Failed to fetch staff' });
   }
 
   const staff = staffList || [];
@@ -192,7 +222,7 @@ async function handleCompliance(req, res) {
 
   if (docsError) {
     console.error('Documents query error:', docsError);
-    return res.status(500).json({ error: 'Failed to fetch documents', details: docsError.message });
+    return res.status(500).json({ error: 'Failed to fetch documents' });
   }
 
   const docs = allDocs || [];
@@ -304,6 +334,28 @@ async function handleCompliance(req, res) {
     };
   }
 
+  // Build per-staff missing documents list
+  const staffGaps = [];
+  for (const s of staff) {
+    const staffDocs = docsByStaff[s.id] || [];
+    const uploadedTypes = new Set(staffDocs.map(d => d.document_type));
+    const missing = REQUIRED_DOCUMENT_TYPES.filter(t => !uploadedTypes.has(t));
+    if (missing.length > 0) {
+      staffGaps.push({
+        staff_id: s.id,
+        staff_name: `${s.first_name} ${s.last_name}`,
+        role: s.role,
+        email: s.email,
+        missing_documents: missing,
+        missing_count: missing.length,
+        uploaded_count: REQUIRED_DOCUMENT_TYPES.length - missing.length,
+        total_required: REQUIRED_DOCUMENT_TYPES.length,
+      });
+    }
+  }
+  // Sort by most missing first
+  staffGaps.sort((a, b) => b.missing_count - a.missing_count);
+
   res.status(200).json({
     total_staff: totalStaff,
     fully_compliant: fullyCompliant,
@@ -312,6 +364,7 @@ async function handleCompliance(req, res) {
     expiring_documents: expiringDocuments,
     expired_documents: expiredDocuments,
     document_type_rates: documentTypeRates,
+    staff_gaps: staffGaps,
   });
 }
 
@@ -370,7 +423,7 @@ async function handleCreate(req, res) {
 
   if (error) {
     console.error('Staff create error:', error);
-    return res.status(500).json({ error: 'Failed to create staff member', details: error.message });
+    return res.status(500).json({ error: 'Failed to create staff member' });
   }
 
   // Log the action
@@ -383,7 +436,79 @@ async function handleCreate(req, res) {
     details: { email: staff.email, role: staff.role, department: staff.department },
   });
 
-  res.status(201).json(staff);
+  // ─── Auto-create vault account if email provided ────────────────────────
+  let vaultAccount = null;
+  if (staff.email) {
+    try {
+      const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+      const vaultRole = mapToVaultRole(staff.role);
+      const password = generatePassword();
+      const fullName = `${staff.first_name} ${staff.last_name}`.trim();
+
+      // Check if vault account already exists for this email
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', staff.email)
+        .single();
+
+      if (!existingProfile) {
+        // Create auth user
+        const { data: authData, error: authErr } = await adminSb.auth.admin.createUser({
+          email: staff.email,
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: fullName, role: vaultRole },
+        });
+
+        if (!authErr && authData?.user) {
+          const userId = authData.user.id;
+
+          // Create profile
+          const { error: profileErr } = await supabase.from('profiles').insert({
+            id: userId,
+            email: staff.email,
+            full_name: fullName,
+            role: vaultRole,
+          });
+
+          if (profileErr) {
+            // Auth user created but profile failed — clean up orphaned auth user
+            await adminSb.auth.admin.deleteUser(userId);
+            vaultAccount = { created: false, reason: 'Profile creation failed: ' + profileErr.message };
+          } else {
+            // Log account creation
+            await supabase.from('audit_log').insert({
+              user_email: 'system',
+              action: 'create_user',
+              resource_type: 'user',
+              resource_id: userId,
+              resource_name: fullName,
+              details: { email: staff.email, vault_role: vaultRole, auto_created: true },
+            });
+
+            vaultAccount = {
+              created: true,
+              email: staff.email,
+              password,
+              vault_role: vaultRole,
+            };
+          }
+        } else if (authErr?.message?.includes('already been registered')) {
+          vaultAccount = { created: false, reason: 'Account already exists for this email' };
+        } else {
+          vaultAccount = { created: false, reason: authErr?.message || 'Failed to create account' };
+        }
+      } else {
+        vaultAccount = { created: false, reason: 'Account already exists for this email' };
+      }
+    } catch (err) {
+      console.error('Auto vault account creation error:', err);
+      vaultAccount = { created: false, reason: err.message };
+    }
+  }
+
+  res.status(201).json({ ...staff, vault_account: vaultAccount });
 }
 
 // ─── PATCH Handler ───────────────────────────────────────────────────────────
@@ -438,7 +563,7 @@ async function handleUpdate(req, res) {
     if (error.code === 'PGRST116') {
       return res.status(404).json({ error: 'Staff member not found' });
     }
-    return res.status(500).json({ error: 'Failed to update staff member', details: error.message });
+    return res.status(500).json({ error: 'Failed to update staff member' });
   }
 
   // Log the action
@@ -475,7 +600,7 @@ async function handleDelete(req, res) {
     if (fetchError.code === 'PGRST116') {
       return res.status(404).json({ error: 'Staff member not found' });
     }
-    return res.status(500).json({ error: 'Failed to fetch staff member', details: fetchError.message });
+    return res.status(500).json({ error: 'Failed to fetch staff member' });
   }
 
   // Fetch all documents for this staff member to clean up storage
@@ -516,7 +641,7 @@ async function handleDelete(req, res) {
 
   if (deleteError) {
     console.error('Staff delete error:', deleteError);
-    return res.status(500).json({ error: 'Failed to delete staff member', details: deleteError.message });
+    return res.status(500).json({ error: 'Failed to delete staff member' });
   }
 
   // Log the action
@@ -572,6 +697,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Staff handler error:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

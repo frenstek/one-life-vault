@@ -5,12 +5,15 @@ import Modal, { ModalBody, ModalFooter, ModalError, ButtonPrimary, ButtonSeconda
 
 const ROLE_OPTIONS = [
   'Support Worker',
-  'Team Leader',
-  'Manager',
-  'Coordinator',
-  'Admin',
   'Nurse',
   'Allied Health',
+  'Team Leader',
+  'Coordinator',
+  'Manager',
+  'Operations Manager',
+  'General Manager',
+  'Director',
+  'Admin',
 ];
 
 const POSITION_TYPES = ['Full-Time', 'Part-Time', 'Casual', 'Contract'];
@@ -38,6 +41,16 @@ export default function EditStaffModal({ isOpen, onClose, member, onUpdated }) {
         emergency_contact_relationship: member.emergency_contact_relationship || '',
         notes: member.notes || '',
         status: member.status || 'active',
+        ndis_clearance_number: member.ndis_clearance_number || '',
+        pay_rate_weekday: member.pay_rate_weekday || '',
+        pay_rate_saturday: member.pay_rate_saturday || '',
+        pay_rate_sunday: member.pay_rate_sunday || '',
+        sleepover_rate: member.sleepover_rate || '',
+        abn: member.abn || '',
+        tfn: member.tfn || '',
+        preferred_super: member.preferred_super || '',
+        bsb: member.bsb || '',
+        bank_account: member.bank_account || '',
       });
       setSaving(false);
       setError(null);
@@ -140,8 +153,58 @@ export default function EditStaffModal({ isOpen, onClose, member, onUpdated }) {
                   <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
                   <select value={form.status || 'active'} onChange={onChange('status')}>
                     <option value="active">Active</option>
+                    <option value="onboarding">Onboarding</option>
                     <option value="inactive">Inactive</option>
+                    <option value="resigned">Resigned</option>
+                    <option value="terminated">Terminated</option>
                   </select>
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">NDIS Worker Clearance No.</label>
+                  <input type="text" value={form.ndis_clearance_number || ''} onChange={onChange('ndis_clearance_number')} placeholder="e.g. WSC-12345678" />
+                </div>
+              </div>
+            </div>
+
+            {/* Pay Rates & Banking */}
+            <div>
+              <h3 className="mb-4 text-sm font-semibold text-slate-800 dark:text-slate-200">Pay Rates & Banking</h3>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Weekday Rate ($/hr)</label>
+                  <input type="number" step="0.01" min="0" value={form.pay_rate_weekday || ''} onChange={onChange('pay_rate_weekday')} placeholder="0.00" />
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Saturday Rate ($/hr)</label>
+                  <input type="number" step="0.01" min="0" value={form.pay_rate_saturday || ''} onChange={onChange('pay_rate_saturday')} placeholder="0.00" />
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Sunday Rate ($/hr)</label>
+                  <input type="number" step="0.01" min="0" value={form.pay_rate_sunday || ''} onChange={onChange('pay_rate_sunday')} placeholder="0.00" />
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Sleepover Rate ($)</label>
+                  <input type="number" step="0.01" min="0" value={form.sleepover_rate || ''} onChange={onChange('sleepover_rate')} placeholder="0.00" />
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">ABN</label>
+                  <input type="text" value={form.abn || ''} onChange={onChange('abn')} placeholder="e.g. 12 345 678 901" />
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">TFN</label>
+                  <input type="text" value={form.tfn || ''} onChange={onChange('tfn')} placeholder="e.g. 123 456 789" />
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Preferred Super</label>
+                  <input type="text" value={form.preferred_super || ''} onChange={onChange('preferred_super')} placeholder="e.g. Australian Super" />
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">BSB</label>
+                  <input type="text" value={form.bsb || ''} onChange={onChange('bsb')} placeholder="e.g. 062-000" />
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Account Number</label>
+                  <input type="text" value={form.bank_account || ''} onChange={onChange('bank_account')} placeholder="e.g. 1234 5678" />
                 </div>
               </div>
             </div>

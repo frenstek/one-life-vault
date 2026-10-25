@@ -1,9 +1,14 @@
 import { supabase, getPublicUrl } from './_lib/supabase.js';
 import { setCors, handleOptions } from './_lib/cors.js';
 
+// Allow large uploads (base64 inflates ~33%, so 35MB covers 25MB files)
+export const config = {
+  api: { bodyParser: { sizeLimit: '35mb' } },
+};
+
 // ─── Shared Helpers ──────────────────────────────────────────────────────────
 
-const MAX_FILE_SIZE = 4.5 * 1024 * 1024;
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
 function getFileType(fileName) {
   const ext = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
@@ -61,10 +66,28 @@ function sanitizePath(str) {
     .trim();
 }
 
+/** Extract the full folder path from a doc's storage_path (supports nested folders) */
+function getFullFolderPath(doc) {
+  const catPrefix = doc.category + '/';
+  if (!doc.storage_path || !doc.storage_path.startsWith(catPrefix)) return null;
+  const rest = doc.storage_path.substring(catPrefix.length);
+  const lastSlash = rest.lastIndexOf('/');
+  if (lastSlash === -1) return null; // root level: category/filename
+  return rest.substring(0, lastSlash); // e.g. "Employment Pack/Templates"
+}
+
+// Backwards compat alias
+function getDocFolder(doc) {
+  const fp = getFullFolderPath(doc);
+  if (!fp) return null;
+  const idx = fp.indexOf('/');
+  return idx === -1 ? fp : fp.substring(0, idx);
+}
+
 // ─── GET Handlers ────────────────────────────────────────────────────────────
 
 async function handleList(req, res) {
-  const { category, subcategory } = req.query;
+  const { category, subcategory, folder } = req.query;
 
   let query = supabase
     .from('documents')
@@ -84,15 +107,55 @@ async function handleList(req, res) {
 
   if (error) {
     console.error('Supabase query error:', error);
-    return res.status(500).json({ error: 'Database query failed', details: error.message });
+    return res.status(500).json({ error: 'Database query failed' });
   }
 
-  const documents = (data || []).map((doc) => ({
-    ...doc,
-    download_url: getPublicUrl(doc.storage_path),
-  }));
+  const all = data || [];
 
-  res.status(200).json(documents);
+  // Separate folder markers from regular documents
+  const allFolderMarkers = all.filter((d) => d.file_type === 'folder');
+  const regularDocs = all.filter((d) => d.file_type !== 'folder');
+
+  let documents, folders;
+
+  if (folder) {
+    // Show docs directly in this folder (not in subfolders)
+    documents = regularDocs.filter((d) => getFullFolderPath(d) === folder);
+    // Show immediate subfolder markers: markers whose name starts with "folder/" and has no further "/"
+    const prefix = folder + '/';
+    folders = allFolderMarkers.filter((f) => {
+      if (!f.name.startsWith(prefix)) return false;
+      const rest = f.name.substring(prefix.length);
+      return rest.length > 0 && !rest.includes('/');
+    });
+  } else {
+    // Root level — show docs without any folder + root-level folder cards
+    documents = regularDocs.filter((d) => getFullFolderPath(d) === null);
+    folders = allFolderMarkers.filter((f) => !f.name.includes('/'));
+  }
+
+  // Count docs per folder recursively (include docs in subfolders)
+  const folderCounts = {};
+  for (const f of folders) {
+    const fPrefix = f.name + '/';
+    folderCounts[f.name] = regularDocs.filter((d) => {
+      const fp = getFullFolderPath(d);
+      return fp === f.name || (fp && fp.startsWith(fPrefix));
+    }).length;
+  }
+
+  res.status(200).json({
+    folders: folders.map((f) => ({
+      ...f,
+      // Display name is just the last segment
+      display_name: f.name.includes('/') ? f.name.substring(f.name.lastIndexOf('/') + 1) : f.name,
+      doc_count: folderCounts[f.name] || 0,
+    })),
+    documents: documents.map((doc) => ({
+      ...doc,
+      download_url: getPublicUrl(doc.storage_path),
+    })),
+  });
 }
 
 async function handleFile(req, res) {
@@ -113,7 +176,7 @@ async function handleFile(req, res) {
     if (error.code === 'PGRST116') {
       return res.status(404).json({ error: 'Document not found' });
     }
-    return res.status(500).json({ error: 'Database query failed', details: error.message });
+    return res.status(500).json({ error: 'Database query failed' });
   }
 
   res.status(200).json({
@@ -133,12 +196,13 @@ async function handleSearch(req, res) {
     .from('documents')
     .select('*')
     .ilike('name', `%${q.trim()}%`)
+    .neq('file_type', 'folder')
     .order('category', { ascending: true })
     .order('name', { ascending: true });
 
   if (error) {
     console.error('Supabase search error:', error);
-    return res.status(500).json({ error: 'Search query failed', details: error.message });
+    return res.status(500).json({ error: 'Search query failed' });
   }
 
   const documents = (data || []).map((doc) => ({
@@ -152,15 +216,16 @@ async function handleSearch(req, res) {
 async function handleCategories(req, res) {
   const { data, error } = await supabase
     .from('documents')
-    .select('category');
+    .select('category, file_type');
 
   if (error) {
     console.error('Supabase query error:', error);
-    return res.status(500).json({ error: 'Database query failed', details: error.message });
+    return res.status(500).json({ error: 'Database query failed' });
   }
 
   const counts = {};
   for (const doc of data || []) {
+    if (doc.file_type === 'folder') continue; // Don't count folder markers
     const cat = doc.category || 'Uncategorized';
     counts[cat] = (counts[cat] || 0) + 1;
   }
@@ -175,16 +240,67 @@ async function handleCategories(req, res) {
 // ─── POST Handlers ───────────────────────────────────────────────────────────
 
 async function handleUpload(req, res) {
-  const { fileName, fileData, category, subcategory } = req.body || {};
+  const { fileName, fileData, category, subcategory, folder, requestSignedUrl, directUpload, storagePath: preUploadedPath, fileSize: preUploadedSize } = req.body || {};
 
   if (!fileName || typeof fileName !== 'string') {
     return res.status(400).json({ error: 'Missing required field: fileName' });
   }
-  if (!fileData || typeof fileData !== 'string') {
-    return res.status(400).json({ error: 'Missing required field: fileData (base64 encoded file content)' });
-  }
   if (!category || typeof category !== 'string') {
     return res.status(400).json({ error: 'Missing required field: category' });
+  }
+
+  const sanitizedCategory = sanitizePath(category);
+  const sanitizedFileName = sanitizePath(fileName);
+  const sanitizedFolder = folder ? sanitizePath(folder) : null;
+
+  // ── Signed URL request: return a signed upload URL for large files ──
+  if (requestSignedUrl) {
+    const sPath = sanitizedFolder
+      ? `${sanitizedCategory}/${sanitizedFolder}/${sanitizedFileName}`
+      : `${sanitizedCategory}/${sanitizedFileName}`;
+
+    const { data, error: signErr } = await supabase.storage
+      .from('documents')
+      .createSignedUploadUrl(sPath);
+
+    if (signErr) {
+      console.error('Signed upload URL error:', signErr);
+      return res.status(500).json({ error: 'Failed to create upload URL: ' + signErr.message });
+    }
+
+    return res.status(200).json({ signedUrl: data.signedUrl, storagePath: sPath, token: data.token });
+  }
+
+  // ── Direct upload path: file already in Supabase Storage, just register metadata ──
+  if (directUpload && preUploadedPath) {
+    const contentType = getMimeType(sanitizedFileName);
+    const fileType = getFileType(sanitizedFileName);
+
+    const { data: doc, error: dbError } = await supabase
+      .from('documents')
+      .insert({
+        name: sanitizedFileName,
+        storage_path: preUploadedPath,
+        category: sanitizedCategory,
+        subcategory: subcategory || null,
+        folder: sanitizedFolder,
+        file_type: fileType,
+        content_type: contentType,
+        file_size: preUploadedSize || 0,
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('DB insert error (direct upload):', dbError);
+      return res.status(500).json({ error: 'Failed to register document' });
+    }
+
+    return res.status(201).json({ document: doc, message: 'Document uploaded successfully' });
+  }
+
+  if (!fileData || typeof fileData !== 'string') {
+    return res.status(400).json({ error: 'Missing required field: fileData (base64 encoded file content)' });
   }
 
   let buffer;
@@ -196,18 +312,18 @@ async function handleUpload(req, res) {
 
   if (buffer.length > MAX_FILE_SIZE) {
     return res.status(413).json({
-      error: `File too large. Maximum size is ${(MAX_FILE_SIZE / (1024 * 1024)).toFixed(1)}MB (Vercel hobby plan limit). Received ${(buffer.length / (1024 * 1024)).toFixed(2)}MB.`,
+      error: `File too large. Maximum size is ${(MAX_FILE_SIZE / (1024 * 1024)).toFixed(0)}MB. Received ${(buffer.length / (1024 * 1024)).toFixed(1)}MB.`,
     });
   }
-
-  const sanitizedCategory = sanitizePath(category);
-  const sanitizedFileName = sanitizePath(fileName);
 
   if (!sanitizedCategory || !sanitizedFileName) {
     return res.status(400).json({ error: 'Invalid category or fileName after sanitization' });
   }
 
-  const storagePath = `${sanitizedCategory}/${sanitizedFileName}`;
+  // Include folder in storage path if specified
+  const storagePath = sanitizedFolder
+    ? `${sanitizedCategory}/${sanitizedFolder}/${sanitizedFileName}`
+    : `${sanitizedCategory}/${sanitizedFileName}`;
   const contentType = getMimeType(sanitizedFileName);
   const fileType = getFileType(sanitizedFileName);
 
@@ -221,9 +337,9 @@ async function handleUpload(req, res) {
   if (uploadError) {
     console.error('Supabase storage upload error:', uploadError);
     if (uploadError.message?.includes('already exists') || uploadError.statusCode === '409') {
-      return res.status(409).json({ error: 'A file with this name already exists in this category', details: uploadError.message });
+      return res.status(409).json({ error: 'A file with this name already exists in this location' });
     }
-    return res.status(500).json({ error: 'Failed to upload file to storage', details: uploadError.message });
+    return res.status(500).json({ error: 'Failed to upload file to storage' });
   }
 
   const { data: docRecord, error: dbError } = await supabase
@@ -242,7 +358,7 @@ async function handleUpload(req, res) {
   if (dbError) {
     console.error('Supabase DB insert error:', dbError);
     await supabase.storage.from('documents').remove([storagePath]);
-    return res.status(500).json({ error: 'Failed to save document metadata', details: dbError.message });
+    return res.status(500).json({ error: 'Failed to save document metadata' });
   }
 
   res.status(201).json({
@@ -251,8 +367,229 @@ async function handleUpload(req, res) {
   });
 }
 
+async function handleCreateFolder(req, res) {
+  const { name, category, subcategory, parentFolder } = req.body || {};
+
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'Missing required field: name (folder name)' });
+  }
+  if (!category || typeof category !== 'string') {
+    return res.status(400).json({ error: 'Missing required field: category' });
+  }
+
+  const sanitizedName = sanitizePath(name.trim());
+  const sanitizedCategory = sanitizePath(category);
+
+  if (!sanitizedName || !sanitizedCategory) {
+    return res.status(400).json({ error: 'Invalid folder name or category' });
+  }
+
+  // Full folder path: parentFolder/name or just name for root-level
+  const fullName = parentFolder ? `${sanitizePath(parentFolder)}/${sanitizedName}` : sanitizedName;
+
+  // Check if folder already exists
+  const { data: existing } = await supabase
+    .from('documents')
+    .select('id')
+    .eq('category', sanitizedCategory)
+    .eq('subcategory', subcategory?.trim() || null)
+    .eq('file_type', 'folder')
+    .eq('name', fullName)
+    .maybeSingle();
+
+  if (existing) {
+    return res.status(409).json({ error: `Folder "${sanitizedName}" already exists` });
+  }
+
+  // Use a unique storage_path for the folder marker (no actual file in storage)
+  const folderId = crypto.randomUUID();
+  const markerPath = `__folders__/${folderId}`;
+
+  const { data: folderRecord, error: dbError } = await supabase
+    .from('documents')
+    .insert({
+      name: fullName,
+      category: sanitizedCategory,
+      subcategory: subcategory?.trim() || null,
+      file_type: 'folder',
+      size: 0,
+      storage_path: markerPath,
+    })
+    .select()
+    .single();
+
+  if (dbError) {
+    console.error('Supabase DB insert error:', dbError);
+    return res.status(500).json({ error: 'Failed to create folder' });
+  }
+
+  res.status(201).json({ ...folderRecord, display_name: sanitizedName });
+}
+
+async function handleDeleteFolder(req, res) {
+  const { id } = req.body || {};
+
+  if (!id) {
+    return res.status(400).json({ error: 'Missing required field: id (folder ID)' });
+  }
+
+  // Get the folder marker
+  const { data: folder, error: fetchError } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('id', id)
+    .eq('file_type', 'folder')
+    .single();
+
+  if (fetchError) {
+    if (fetchError.code === 'PGRST116') {
+      return res.status(404).json({ error: 'Folder not found' });
+    }
+    return res.status(500).json({ error: 'Failed to fetch folder' });
+  }
+
+  // Find all documents inside this folder (including subfolders)
+  const folderPrefix = `${folder.category}/${folder.name}/`;
+  const { data: docsInFolder } = await supabase
+    .from('documents')
+    .select('id, storage_path')
+    .eq('category', folder.category)
+    .neq('file_type', 'folder')
+    .like('storage_path', `${folderPrefix}%`);
+
+  // Check for subfolder markers
+  const { data: subfolders } = await supabase
+    .from('documents')
+    .select('id, name')
+    .eq('category', folder.category)
+    .eq('file_type', 'folder')
+    .like('name', `${folder.name}/%`);
+
+  const totalChildren = (docsInFolder?.length || 0) + (subfolders?.length || 0);
+  if (totalChildren > 0) {
+    return res.status(400).json({
+      error: `Folder "${folder.name.includes('/') ? folder.name.substring(folder.name.lastIndexOf('/') + 1) : folder.name}" is not empty (${docsInFolder?.length || 0} document${(docsInFolder?.length || 0) !== 1 ? 's' : ''}, ${subfolders?.length || 0} subfolder${(subfolders?.length || 0) !== 1 ? 's' : ''}). Move or delete contents first.`,
+    });
+  }
+
+  // Delete the folder marker from DB (no storage file to delete for markers)
+  const { error: dbError } = await supabase
+    .from('documents')
+    .delete()
+    .eq('id', id);
+
+  if (dbError) {
+    return res.status(500).json({ error: 'Failed to delete folder' });
+  }
+
+  // Clean up marker storage path if it exists
+  if (folder.storage_path) {
+    await supabase.storage.from('documents').remove([folder.storage_path]);
+  }
+
+  res.status(200).json({ message: `Folder "${folder.name}" deleted successfully`, id });
+}
+
+async function handleRenameFolder(req, res) {
+  const { id, newName } = req.body || {};
+
+  if (!id || !newName?.trim()) {
+    return res.status(400).json({ error: 'Missing required fields: id, newName' });
+  }
+
+  const sanitizedNewName = sanitizePath(newName.trim());
+
+  // Get the folder
+  const { data: folder, error: fetchError } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('id', id)
+    .eq('file_type', 'folder')
+    .single();
+
+  if (fetchError) {
+    if (fetchError.code === 'PGRST116') return res.status(404).json({ error: 'Folder not found' });
+    return res.status(500).json({ error: 'Failed to fetch folder' });
+  }
+
+  // Build new full name preserving parent path
+  const parentPath = folder.name.includes('/') ? folder.name.substring(0, folder.name.lastIndexOf('/')) : null;
+  const newFullName = parentPath ? `${parentPath}/${sanitizedNewName}` : sanitizedNewName;
+
+  // Check if new name already exists at the same level
+  const { data: existing } = await supabase
+    .from('documents')
+    .select('id')
+    .eq('category', folder.category)
+    .eq('subcategory', folder.subcategory)
+    .eq('file_type', 'folder')
+    .eq('name', newFullName)
+    .neq('id', id)
+    .maybeSingle();
+
+  if (existing) {
+    return res.status(409).json({ error: `Folder "${sanitizedNewName}" already exists` });
+  }
+
+  const oldStoragePrefix = `${folder.category}/${folder.name}/`;
+  const newStoragePrefix = `${folder.category}/${newFullName}/`;
+
+  // Move all documents inside the folder (including nested subfolders' docs)
+  const { data: docsInFolder } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('category', folder.category)
+    .neq('file_type', 'folder')
+    .like('storage_path', `${oldStoragePrefix}%`);
+
+  const errors = [];
+  for (const doc of docsInFolder || []) {
+    const newPath = newStoragePrefix + doc.storage_path.substring(oldStoragePrefix.length);
+    try {
+      if (newPath !== doc.storage_path) {
+        await supabase.storage.from('documents').copy(doc.storage_path, newPath);
+        await supabase.storage.from('documents').remove([doc.storage_path]);
+      }
+      await supabase
+        .from('documents')
+        .update({ storage_path: newPath, updated_at: new Date().toISOString() })
+        .eq('id', doc.id);
+    } catch (e) {
+      errors.push({ id: doc.id, error: e.message });
+    }
+  }
+
+  // Rename all descendant subfolder markers (e.g., "OldName/Sub" → "NewName/Sub")
+  const { data: descendantFolders } = await supabase
+    .from('documents')
+    .select('id, name')
+    .eq('category', folder.category)
+    .eq('file_type', 'folder')
+    .like('name', `${folder.name}/%`);
+
+  for (const sub of descendantFolders || []) {
+    const newSubName = newFullName + sub.name.substring(folder.name.length);
+    await supabase
+      .from('documents')
+      .update({ name: newSubName, updated_at: new Date().toISOString() })
+      .eq('id', sub.id);
+  }
+
+  // Rename the folder marker itself
+  await supabase
+    .from('documents')
+    .update({ name: newFullName, updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  res.status(200).json({
+    message: `Folder renamed to "${sanitizedNewName}"`,
+    docs_moved: (docsInFolder || []).length - errors.length,
+    errors: errors.length > 0 ? errors : undefined,
+  });
+}
+
 async function handleMove(req, res) {
-  const { ids, category, subcategory } = req.body || {};
+  const { ids, category, subcategory, folder } = req.body || {};
 
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ error: 'Missing required field: ids (array of document IDs)' });
@@ -267,6 +604,8 @@ async function handleMove(req, res) {
     return res.status(400).json({ error: 'Invalid category after sanitization' });
   }
 
+  const targetFolder = folder ? sanitizePath(folder) : null;
+
   const { data: docs, error: fetchError } = await supabase
     .from('documents')
     .select('*')
@@ -274,7 +613,7 @@ async function handleMove(req, res) {
 
   if (fetchError) {
     console.error('Supabase fetch error:', fetchError);
-    return res.status(500).json({ error: 'Failed to fetch documents', details: fetchError.message });
+    return res.status(500).json({ error: 'Failed to fetch documents' });
   }
 
   if (!docs || docs.length === 0) {
@@ -285,7 +624,9 @@ async function handleMove(req, res) {
   const errors = [];
 
   for (const doc of docs) {
-    const newStoragePath = `${targetCategory}/${doc.name}`;
+    const newStoragePath = targetFolder
+      ? `${targetCategory}/${targetFolder}/${doc.name}`
+      : `${targetCategory}/${doc.name}`;
 
     try {
       if (newStoragePath !== doc.storage_path) {
@@ -350,27 +691,32 @@ async function handleBulkDelete(req, res) {
 
   const { data: docs, error: fetchError } = await supabase
     .from('documents')
-    .select('id, storage_path, name')
+    .select('id, storage_path, name, file_type')
     .in('id', ids);
 
   if (fetchError) {
     console.error('Supabase fetch error:', fetchError);
-    return res.status(500).json({ error: 'Failed to fetch documents', details: fetchError.message });
+    return res.status(500).json({ error: 'Failed to fetch documents' });
   }
 
   if (!docs || docs.length === 0) {
     return res.status(404).json({ error: 'No documents found for the provided IDs' });
   }
 
-  const storagePaths = docs.map((doc) => doc.storage_path);
+  // Only delete real files from storage (not folder markers)
+  const storagePaths = docs
+    .filter((d) => d.file_type !== 'folder')
+    .map((d) => d.storage_path);
   const foundIds = docs.map((doc) => doc.id);
 
-  const { error: storageError } = await supabase.storage
-    .from('documents')
-    .remove(storagePaths);
+  if (storagePaths.length > 0) {
+    const { error: storageError } = await supabase.storage
+      .from('documents')
+      .remove(storagePaths);
 
-  if (storageError) {
-    console.error('Supabase storage bulk delete error:', storageError);
+    if (storageError) {
+      console.error('Supabase storage bulk delete error:', storageError);
+    }
   }
 
   const { error: dbError } = await supabase
@@ -380,7 +726,7 @@ async function handleBulkDelete(req, res) {
 
   if (dbError) {
     console.error('Supabase DB bulk delete error:', dbError);
-    return res.status(500).json({ error: 'Failed to delete document records', details: dbError.message });
+    return res.status(500).json({ error: 'Failed to delete document records' });
   }
 
   const notFound = ids.filter((id) => !foundIds.includes(id));
@@ -396,14 +742,14 @@ async function handleBulkDelete(req, res) {
 // ─── PATCH Handler ───────────────────────────────────────────────────────────
 
 async function handleUpdate(req, res) {
-  const { id, name, category, subcategory } = req.body || {};
+  const { id, name, category, subcategory, folder } = req.body || {};
 
   if (!id) {
     return res.status(400).json({ error: 'Missing required field: id' });
   }
 
-  if (name === undefined && category === undefined && subcategory === undefined) {
-    return res.status(400).json({ error: 'No fields to update. Provide at least one of: name, category, subcategory' });
+  if (name === undefined && category === undefined && subcategory === undefined && folder === undefined) {
+    return res.status(400).json({ error: 'No fields to update. Provide at least one of: name, category, subcategory, folder' });
   }
 
   const { data: existing, error: fetchError } = await supabase
@@ -417,13 +763,20 @@ async function handleUpdate(req, res) {
     if (fetchError.code === 'PGRST116') {
       return res.status(404).json({ error: 'Document not found' });
     }
-    return res.status(500).json({ error: 'Failed to fetch document', details: fetchError.message });
+    return res.status(500).json({ error: 'Failed to fetch document' });
   }
 
   const newName = name ? sanitizePath(name) : existing.name;
   const newCategory = category ? sanitizePath(category) : existing.category;
   const newSubcategory = subcategory !== undefined ? (subcategory?.trim() || null) : existing.subcategory;
-  const newStoragePath = `${newCategory}/${newName}`;
+
+  // Determine new folder
+  const currentFolder = getDocFolder(existing);
+  const newFolder = folder !== undefined ? (folder || null) : currentFolder;
+
+  const newStoragePath = newFolder
+    ? `${newCategory}/${sanitizePath(newFolder)}/${newName}`
+    : `${newCategory}/${newName}`;
 
   if (newStoragePath !== existing.storage_path) {
     const { error: copyError } = await supabase.storage
@@ -432,7 +785,7 @@ async function handleUpdate(req, res) {
 
     if (copyError) {
       console.error('Supabase storage copy error:', copyError);
-      return res.status(500).json({ error: 'Failed to move file in storage', details: copyError.message });
+      return res.status(500).json({ error: 'Failed to move file in storage' });
     }
 
     const { error: deleteError } = await supabase.storage
@@ -459,7 +812,7 @@ async function handleUpdate(req, res) {
 
   if (updateError) {
     console.error('Supabase DB update error:', updateError);
-    return res.status(500).json({ error: 'Failed to update document metadata', details: updateError.message });
+    return res.status(500).json({ error: 'Failed to update document metadata' });
   }
 
   res.status(200).json({
@@ -479,7 +832,7 @@ async function handleDelete(req, res) {
 
   const { data: doc, error: fetchError } = await supabase
     .from('documents')
-    .select('id, storage_path, name')
+    .select('id, storage_path, name, file_type')
     .eq('id', id)
     .single();
 
@@ -488,15 +841,18 @@ async function handleDelete(req, res) {
     if (fetchError.code === 'PGRST116') {
       return res.status(404).json({ error: 'Document not found' });
     }
-    return res.status(500).json({ error: 'Failed to fetch document', details: fetchError.message });
+    return res.status(500).json({ error: 'Failed to fetch document' });
   }
 
-  const { error: storageError } = await supabase.storage
-    .from('documents')
-    .remove([doc.storage_path]);
+  // Only delete from storage if it's a real file
+  if (doc.file_type !== 'folder') {
+    const { error: storageError } = await supabase.storage
+      .from('documents')
+      .remove([doc.storage_path]);
 
-  if (storageError) {
-    console.error('Supabase storage delete error:', storageError);
+    if (storageError) {
+      console.error('Supabase storage delete error:', storageError);
+    }
   }
 
   const { error: dbError } = await supabase
@@ -506,7 +862,7 @@ async function handleDelete(req, res) {
 
   if (dbError) {
     console.error('Supabase DB delete error:', dbError);
-    return res.status(500).json({ error: 'Failed to delete document record', details: dbError.message });
+    return res.status(500).json({ error: 'Failed to delete document record' });
   }
 
   res.status(200).json({
@@ -548,8 +904,14 @@ export default async function handler(req, res) {
           return await handleMove(req, res);
         case 'bulk-delete':
           return await handleBulkDelete(req, res);
+        case 'create-folder':
+          return await handleCreateFolder(req, res);
+        case 'delete-folder':
+          return await handleDeleteFolder(req, res);
+        case 'rename-folder':
+          return await handleRenameFolder(req, res);
         default:
-          return res.status(400).json({ error: 'Missing or invalid action. Valid POST actions: upload, move, bulk-delete' });
+          return res.status(400).json({ error: 'Missing or invalid action. Valid POST actions: upload, move, bulk-delete, create-folder, delete-folder, rename-folder' });
       }
     }
 
@@ -564,6 +926,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Docs handler error:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -173,8 +173,7 @@ export default function DocumentView() {
           {downloadUrl && (
             <a
               href={downloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              download={file.name && file.file_type && !file.name.toLowerCase().endsWith(`.${file.file_type.toLowerCase()}`) ? `${file.name}.${file.file_type.toLowerCase()}` : file.name || 'download'}
               className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-700"
             >
               <HiArrowDownTray className="h-4 w-4" />
@@ -225,8 +224,7 @@ export default function DocumentView() {
               {downloadUrl && (
                 <a
                   href={downloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  download={file.name && file.file_type && !file.name.toLowerCase().endsWith(`.${file.file_type.toLowerCase()}`) ? `${file.name}.${file.file_type.toLowerCase()}` : file.name || 'download'}
                   className="mt-4 flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-700"
                 >
                   <HiArrowDownTray className="h-4 w-4" />

@@ -9,6 +9,7 @@ import {
   HiEllipsisVertical,
   HiPencilSquare,
   HiArrowRightCircle,
+  HiArchiveBoxArrowDown,
   HiTrash,
 } from 'react-icons/hi2';
 import { getFileTypeInfo, formatFileSize, formatDate } from '../lib/api';
@@ -44,7 +45,10 @@ export default function DocumentCard({
   onEdit,
   onMove,
   onDelete,
+  onArchive,
   selectionMode = false,
+  draggable = true,
+  selectedIds,
 }) {
   const navigate = useNavigate();
   const fileInfo = getFileTypeInfo(file.file_type);
@@ -78,6 +82,15 @@ export default function DocumentCard({
     onSelect?.(file.id);
   }
 
+  function handleDragStart(e) {
+    // If this doc is part of a multi-selection, drag all selected
+    const ids = selectedIds?.size > 0 && selectedIds.has(file.id)
+      ? [...selectedIds]
+      : [file.id];
+    e.dataTransfer.setData('application/x-doc-ids', JSON.stringify(ids));
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
   function handleMenuToggle(e) {
     e.stopPropagation();
     setMenuOpen((v) => !v);
@@ -93,6 +106,12 @@ export default function DocumentCard({
     e.stopPropagation();
     setMenuOpen(false);
     onMove?.(file);
+  }
+
+  function handleArchive(e) {
+    e.stopPropagation();
+    setMenuOpen(false);
+    onArchive?.(file);
   }
 
   function handleDelete(e) {
@@ -120,10 +139,19 @@ export default function DocumentCard({
         <HiArrowRightCircle className="h-4 w-4 text-slate-400" />
         Move to...
       </button>
-      <hr className="my-1 border-slate-100" />
+      {file.category !== 'Archive' && (
+        <button
+          onClick={handleArchive}
+          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-amber-600 dark:text-amber-400 transition-colors hover:bg-amber-50 dark:hover:bg-amber-900/20"
+        >
+          <HiArchiveBoxArrowDown className="h-4 w-4" />
+          Archive
+        </button>
+      )}
+      <hr className="my-1 border-slate-100 dark:border-[#263554]" />
       <button
         onClick={handleDelete}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
       >
         <HiTrash className="h-4 w-4" />
         Delete
@@ -135,6 +163,8 @@ export default function DocumentCard({
     return (
       <div
         onClick={handleClick}
+        draggable={draggable}
+        onDragStart={handleDragStart}
         className={`group relative flex w-full cursor-pointer items-center gap-4 rounded-lg border bg-white dark:bg-[#162036] px-4 py-3 text-left shadow-sm transition-all hover:shadow-md ${
           selected ? 'border-brand-300 bg-brand-50 dark:bg-brand-900/20' : 'border-slate-200 dark:border-[#263554] hover:border-slate-300 dark:hover:border-slate-600'
         }`}
@@ -193,6 +223,8 @@ export default function DocumentCard({
   return (
     <div
       onClick={handleClick}
+      draggable={draggable}
+      onDragStart={handleDragStart}
       className={`group relative flex cursor-pointer flex-col items-center rounded-xl border bg-white dark:bg-[#162036] p-6 text-center shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${
         menuOpen ? 'z-30' : ''
       } ${

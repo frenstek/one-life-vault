@@ -2,7 +2,8 @@ import { supabase } from './_lib/supabase.js';
 import { setCors, handleOptions } from './_lib/cors.js';
 import { calcDocumentStatus, REQUIRED_DOCUMENT_TYPES } from './_lib/ndis.js';
 
-const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB (Vercel hobby plan limit)
+const MAX_FILE_SIZE = 5.5 * 1024 * 1024; // ~5MB decoded (base64 overhead fits within Vercel 6MB body limit)
+const MAX_STORAGE_SIZE = 50 * 1024 * 1024; // 50MB for direct/signed URL uploads
 
 // Derive file_type from extension
 function getFileType(fileName) {
@@ -52,7 +53,7 @@ async function ensureBucket() {
   try {
     const { error } = await supabase.storage.createBucket('staff-documents', {
       public: false,
-      fileSizeLimit: MAX_FILE_SIZE,
+      fileSizeLimit: MAX_STORAGE_SIZE,
     });
     // Ignore error if bucket already exists
     if (error && !error.message?.includes('already exists')) {
@@ -74,7 +75,39 @@ async function handleUpload(req, res) {
     issueDate,
     expiryDate,
     notes,
+    directUpload,
+    storagePath: preUploadedPath,
+    fileSize: preUploadedSize,
   } = req.body || {};
+
+  // ── Signed URL request: return a signed upload URL for large files ──
+  if (req.body?.requestSignedUrl) {
+    if (!staffId) return res.status(400).json({ error: 'Missing required field: staffId' });
+    if (!documentType) return res.status(400).json({ error: 'Missing required field: documentType' });
+    if (!fileName) return res.status(400).json({ error: 'Missing required field: fileName' });
+
+    const sanitizedDocType = sanitizePath(documentType);
+    const sanitizedFileName = sanitizePath(fileName);
+    const timestamp = Date.now();
+    const storagePath = `${staffId}/${sanitizedDocType}/${timestamp}_${sanitizedFileName}`;
+
+    await ensureBucket();
+
+    const { data, error: signErr } = await supabase.storage
+      .from('staff-documents')
+      .createSignedUploadUrl(storagePath);
+
+    if (signErr) {
+      console.error('Signed upload URL error:', signErr);
+      return res.status(500).json({ error: 'Failed to create upload URL: ' + signErr.message });
+    }
+
+    return res.status(200).json({
+      signedUrl: data.signedUrl,
+      storagePath,
+      token: data.token,
+    });
+  }
 
   // Validate required fields
   if (!staffId) {
@@ -86,7 +119,7 @@ async function handleUpload(req, res) {
   if (!fileName || typeof fileName !== 'string') {
     return res.status(400).json({ error: 'Missing required field: fileName' });
   }
-  if (!fileData || typeof fileData !== 'string') {
+  if (!directUpload && (!fileData || typeof fileData !== 'string')) {
     return res.status(400).json({ error: 'Missing required field: fileData (base64 encoded)' });
   }
 
@@ -106,10 +139,57 @@ async function handleUpload(req, res) {
     return res.status(404).json({ error: 'Staff member not found' });
   }
 
-  // Decode base64
+  // ── Direct upload path: file already in Supabase Storage, just register metadata ──
+  if (directUpload && preUploadedPath) {
+    const sanitizedFileName = sanitizePath(fileName);
+    const fileType = getFileType(sanitizedFileName);
+    const status = calcDocumentStatus(expiryDate || null);
+
+    const { data: docRecord, error: dbError } = await supabase
+      .from('staff_documents')
+      .insert({
+        staff_id: staffId,
+        document_type: documentType,
+        document_name: sanitizedFileName,
+        storage_path: preUploadedPath,
+        file_type: fileType,
+        size: preUploadedSize || 0,
+        issue_date: issueDate || null,
+        expiry_date: expiryDate || null,
+        status,
+        notes: notes?.trim() || null,
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('DB insert error (direct):', dbError);
+      return res.status(500).json({ error: 'Failed to save document metadata' });
+    }
+
+    await supabase.from('audit_log').insert({
+      user_email: 'system',
+      action: 'upload_document',
+      resource_type: 'staff_document',
+      resource_id: docRecord.id,
+      resource_name: `${documentType} - ${sanitizedFileName}`,
+      details: {
+        staff_id: staffId,
+        staff_name: `${staff.first_name} ${staff.last_name}`,
+        document_type: documentType,
+        file_size: preUploadedSize,
+        method: 'direct_upload',
+      },
+    });
+
+    return res.status(201).json({ success: true, document: docRecord });
+  }
+
+  // ── Standard upload path: decode base64 ──
   let buffer;
   try {
-    buffer = Buffer.from(fileData, 'base64');
+    const base64Content = fileData.includes(',') ? fileData.split(',')[1] : fileData;
+    buffer = Buffer.from(base64Content, 'base64');
   } catch {
     return res.status(400).json({ error: 'Invalid base64 fileData' });
   }
@@ -128,7 +208,34 @@ async function handleUpload(req, res) {
     return res.status(400).json({ error: 'Invalid documentType or fileName after sanitization' });
   }
 
-  const storagePath = `${staffId}/${sanitizedDocType}/${sanitizedFileName}`;
+  // Log if replacing an existing document of the same type
+  const { data: existingDocs } = await supabase
+    .from('staff_documents')
+    .select('id, document_name')
+    .eq('staff_id', staffId)
+    .eq('document_type', documentType);
+
+  if (existingDocs && existingDocs.length > 0) {
+    for (const oldDoc of existingDocs) {
+      await supabase.from('audit_log').insert({
+        user_email: 'system',
+        action: 'archive_document',
+        resource_type: 'staff_document',
+        resource_id: oldDoc.id,
+        resource_name: `${documentType} - ${oldDoc.document_name}`,
+        details: {
+          staff_id: staffId,
+          staff_name: `${staff.first_name} ${staff.last_name}`,
+          document_type: documentType,
+          reason: 'Replaced by newer upload',
+        },
+      });
+    }
+  }
+
+  // Use timestamped path to avoid overwriting archived files
+  const timestamp = Date.now();
+  const storagePath = `${staffId}/${sanitizedDocType}/${timestamp}_${sanitizedFileName}`;
   const contentType = getMimeType(sanitizedFileName);
   const fileType = getFileType(sanitizedFileName);
 
@@ -140,12 +247,12 @@ async function handleUpload(req, res) {
     .from('staff-documents')
     .upload(storagePath, buffer, {
       contentType,
-      upsert: true, // Overwrite if re-uploading same document
+      upsert: false,
     });
 
   if (uploadError) {
     console.error('Storage upload error:', uploadError);
-    return res.status(500).json({ error: 'Failed to upload file to storage', details: uploadError.message });
+    return res.status(500).json({ error: 'Failed to upload file to storage' });
   }
 
   // Calculate document status
@@ -173,7 +280,7 @@ async function handleUpload(req, res) {
     console.error('DB insert error:', dbError);
     // Clean up uploaded file
     await supabase.storage.from('staff-documents').remove([storagePath]);
-    return res.status(500).json({ error: 'Failed to save document metadata', details: dbError.message });
+    return res.status(500).json({ error: 'Failed to save document metadata' });
   }
 
   // Log the action
@@ -216,7 +323,7 @@ async function handleDelete(req, res) {
     if (fetchError.code === 'PGRST116') {
       return res.status(404).json({ error: 'Document not found' });
     }
-    return res.status(500).json({ error: 'Failed to fetch document', details: fetchError.message });
+    return res.status(500).json({ error: 'Failed to fetch document' });
   }
 
   // Delete file from storage
@@ -238,7 +345,7 @@ async function handleDelete(req, res) {
 
   if (dbError) {
     console.error('DB delete error:', dbError);
-    return res.status(500).json({ error: 'Failed to delete document record', details: dbError.message });
+    return res.status(500).json({ error: 'Failed to delete document record' });
   }
 
   // Log the action
@@ -282,7 +389,7 @@ async function handleDownload(req, res) {
     if (fetchError.code === 'PGRST116') {
       return res.status(404).json({ error: 'Document not found' });
     }
-    return res.status(500).json({ error: 'Failed to fetch document', details: fetchError.message });
+    return res.status(500).json({ error: 'Failed to fetch document' });
   }
 
   // Create signed URL (1 hour expiry)
@@ -292,7 +399,7 @@ async function handleDownload(req, res) {
 
   if (signError) {
     console.error('Signed URL error:', signError);
-    return res.status(500).json({ error: 'Failed to create download URL', details: signError.message });
+    return res.status(500).json({ error: 'Failed to create download URL' });
   }
 
   res.status(200).json({ url: signedData.signedUrl, document: doc });
@@ -320,6 +427,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Staff docs handler error:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

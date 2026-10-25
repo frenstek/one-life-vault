@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchTasks, createTask, updateTask, deleteTask, fetchStaff, fetchTaskNotes, addTaskNote, deleteTaskNote } from '../lib/api';
+import { toLocalDate } from '../lib/dates';
+
+// A task is overdue once its due date (local calendar day) is before today.
+const isPastDue = (task) =>
+  !!task.due_date && String(task.due_date).slice(0, 10) < toLocalDate() && task.status !== 'done';
 import { useAuth } from '../contexts/AuthContext';
 import {
   HiOutlineClipboardDocumentList,
@@ -150,7 +155,7 @@ export default function TaskBoard() {
 
   const stats = {
     total: tasks.length,
-    overdue: tasks.filter((t) => t.due_date && new Date(t.due_date) < new Date() && t.status !== 'done').length,
+    overdue: tasks.filter(isPastDue).length,
   };
 
   if (loading) {
@@ -359,7 +364,7 @@ export default function TaskBoard() {
                   const priorityCfg = getPriorityConfig(task.priority);
                   const colCfg = getColumnConfig(task.status);
                   const ColIcon = colCfg.icon;
-                  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
+                  const isOverdue = isPastDue(task);
 
                   return (
                     <tr key={task.id} className="border-b border-slate-50 dark:border-[#263554] hover:bg-slate-50/50 dark:hover:bg-[#1e2d4a]/30 transition-colors">
@@ -460,7 +465,7 @@ export default function TaskBoard() {
 
 function TaskCard({ task, onEdit, onDelete, onView, onDragStart, dragging }) {
   const priorityCfg = getPriorityConfig(task.priority);
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
+  const isOverdue = isPastDue(task);
 
   return (
     <div
@@ -567,7 +572,7 @@ function TaskDetail({ task, authorName, onEdit, onClose, onTaskUpdate }) {
   const priorityCfg = getPriorityConfig(task.priority);
   const colCfg = getColumnConfig(task.status);
   const ColIcon = colCfg.icon;
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
+  const isOverdue = isPastDue(task);
 
   useEffect(() => {
     fetchTaskNotes(task.id)

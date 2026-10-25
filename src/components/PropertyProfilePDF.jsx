@@ -496,43 +496,48 @@ export default function PropertyProfilePDF({ property }) {
         <div style={{
           display: 'flex',
           height: `${bottomSectionHeight}px`,
-          padding: '20px 30px 12px 30px',
-          gap: '30px',
+          padding: '16px 30px 10px 30px',
+          gap: '24px',
           background: '#ffffff',
           boxSizing: 'border-box',
+          overflow: 'hidden',
         }}>
-          {/* LEFT COLUMN — Features + Local Area */}
+          {/* LEFT COLUMN — Features only */}
           <div style={{ flex: '1', minWidth: '0' }}>
-            {/* Property Features */}
+            {/* Property Features — 2-column grid */}
             {hasFeatures && (
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: '14px' }}>
                 <div style={{
-                  fontSize: '13px',
+                  fontSize: '12px',
                   fontWeight: '800',
                   color: DARK_GREEN,
                   textTransform: 'uppercase',
                   letterSpacing: '1px',
-                  marginBottom: '10px',
-                  paddingBottom: '6px',
+                  marginBottom: '7px',
+                  paddingBottom: '5px',
                   borderBottom: `2px solid ${OLF_GREEN}`,
                   display: 'inline-block',
                 }}>
                   Property Features
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                  {features.slice(0, 12).map((feat, idx) => (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '3px 10px',
+                }}>
+                  {features.slice(0, 16).map((feat, idx) => (
                     <div key={idx} style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
+                      gap: '4px',
                     }}>
                       <span style={{ display: 'flex', flexShrink: 0 }}>
                         <CheckIcon />
                       </span>
                       <span style={{
-                        fontSize: '11px',
+                        fontSize: '9.5px',
                         color: '#334155',
-                        lineHeight: '1.3',
+                        lineHeight: '1.25',
                       }}>
                         {feat}
                       </span>
@@ -542,100 +547,73 @@ export default function PropertyProfilePDF({ property }) {
               </div>
             )}
 
-            {/* Local Area / Nearby Amenities */}
-            {hasAmenities && (
+            {/* Accessibility — left column below features */}
+            {hasAccessibility && (
               <div>
                 <div style={{
-                  fontSize: '13px',
+                  fontSize: '12px',
                   fontWeight: '800',
                   color: DARK_GREEN,
                   textTransform: 'uppercase',
                   letterSpacing: '1px',
-                  marginBottom: '10px',
-                  paddingBottom: '6px',
-                  borderBottom: `2px solid ${OLF_BLUE}`,
-                  display: 'inline-block',
-                }}>
-                  Local Area
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                  {amenityLines.slice(0, 8).map((line, idx) => (
-                    <div key={idx} style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                    }}>
-                      <span style={{ display: 'flex', flexShrink: 0, marginTop: '1px' }}>
-                        <MapPinIcon />
-                      </span>
-                      <span style={{
-                        fontSize: '11px',
-                        color: '#334155',
-                        lineHeight: '1.4',
-                      }}>
-                        {line}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Accessibility (if no amenities, show here) */}
-            {hasAccessibility && !hasAmenities && (
-              <div>
-                <div style={{
-                  fontSize: '13px',
-                  fontWeight: '800',
-                  color: DARK_GREEN,
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  marginBottom: '10px',
-                  paddingBottom: '6px',
-                  borderBottom: `2px solid ${OLF_BLUE}`,
-                  display: 'inline-block',
-                }}>
-                  Accessibility
-                </div>
-                <div style={{
-                  fontSize: '11px',
-                  color: '#334155',
-                  lineHeight: '1.5',
-                  whiteSpace: 'pre-line',
-                }}>
-                  {property.accessibility}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT COLUMN — Map / Accessibility / Contact */}
-          <div style={{ flex: '1', minWidth: '0' }}>
-            {/* Accessibility info (when amenities exist, show here) */}
-            {hasAccessibility && hasAmenities && (
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{
-                  fontSize: '13px',
-                  fontWeight: '800',
-                  color: DARK_GREEN,
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  marginBottom: '10px',
-                  paddingBottom: '6px',
+                  marginBottom: '6px',
+                  paddingBottom: '5px',
                   borderBottom: `2px solid ${OLF_GREEN}`,
                   display: 'inline-block',
                 }}>
                   Accessibility
                 </div>
                 <div style={{
-                  fontSize: '11px',
+                  fontSize: '9.5px',
                   color: '#334155',
-                  lineHeight: '1.5',
+                  lineHeight: '1.45',
                   whiteSpace: 'pre-line',
                 }}>
-                  {property.accessibility.length > 300
-                    ? property.accessibility.slice(0, 300).trim() + '...'
+                  {property.accessibility.length > 280
+                    ? property.accessibility.slice(0, 280).trim() + '...'
                     : property.accessibility}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN — Local Area + NDIS badge + Contact */}
+          <div style={{ flex: '1', minWidth: '0' }}>
+            {/* Local Area / Nearby Amenities */}
+            {hasAmenities && (
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  color: DARK_GREEN,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  marginBottom: '7px',
+                  paddingBottom: '5px',
+                  borderBottom: `2px solid ${OLF_BLUE}`,
+                  display: 'inline-block',
+                }}>
+                  Local Area
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  {amenityLines.slice(0, 9).map((line, idx) => (
+                    <div key={idx} style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '5px',
+                    }}>
+                      <span style={{ display: 'flex', flexShrink: 0, marginTop: '1px' }}>
+                        <MapPinIcon />
+                      </span>
+                      <span style={{
+                        fontSize: '9.5px',
+                        color: '#334155',
+                        lineHeight: '1.3',
+                      }}>
+                        {line}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -761,7 +739,7 @@ export default function PropertyProfilePDF({ property }) {
               fontSize: '11px',
               fontWeight: '600',
             }}>
-              1300 ONE LIFE
+              0457 347 882
             </span>
           </div>
 
@@ -776,7 +754,7 @@ export default function PropertyProfilePDF({ property }) {
               fontSize: '11px',
               fontWeight: '500',
             }}>
-              onelifefoundation.com.au
+              onelifefoundationndis.com.au
             </span>
           </div>
 
@@ -791,7 +769,7 @@ export default function PropertyProfilePDF({ property }) {
               fontSize: '11px',
               fontWeight: '500',
             }}>
-              info@onelifefoundation.com.au
+              support@onelifefoundationndis.com.au
             </span>
           </div>
         </div>

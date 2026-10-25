@@ -13,20 +13,22 @@ const INQUIRY_FIELDS = [
 const PARTICIPANT_FIELDS = [
   'first_name', 'last_name', 'preferred_name', 'date_of_birth', 'ndis_number',
   'phone', 'email', 'location', 'state', 'bio', 'photo_url',
+  'start_date_with_olf',
   'plan_start_date', 'plan_end_date', 'funding_type', 'funding_ratio', 'support_level',
   'primary_disability', 'secondary_disability',
   'communication_needs', 'mobility', 'dietary_requirements', 'allergies',
   'medications_summary', 'medicare_number', 'cultural_considerations',
   'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship',
   'gp_name', 'gp_phone', 'gp_clinic',
-  'bsp_name', 'bsp_phone', 'bsp_organisation',
-  'support_coordinator_name', 'support_coordinator_phone', 'support_coordinator_organisation',
+  'pharmacy_name', 'pharmacy_phone', 'pharmacy_address',
+  'bsp_name', 'bsp_phone', 'bsp_email', 'bsp_organisation',
+  'support_coordinator_name', 'support_coordinator_phone', 'support_coordinator_email', 'support_coordinator_organisation',
   'occupational_therapist', 'speech_pathologist', 'psychologist',
-  'plan_manager_name', 'plan_manager_organisation',
+  'plan_manager_name', 'plan_manager_email', 'plan_manager_organisation',
   'assigned_staff', 'status', 'notes',
 ];
 
-const DATE_FIELDS = ['date_of_birth', 'plan_start_date', 'plan_end_date', 'next_follow_up', 'inquiry_date'];
+const DATE_FIELDS = ['date_of_birth', 'start_date_with_olf', 'plan_start_date', 'plan_end_date', 'next_follow_up', 'inquiry_date'];
 const MAX_FILE_SIZE = 4.5 * 1024 * 1024;
 
 function stripBase64Prefix(str) {
@@ -44,7 +46,7 @@ async function handleInquiryList(req, res) {
   if (status) query = query.eq('status', status);
   if (search) query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,ndis_number.ilike.%${search}%`);
   const { data, error } = await query;
-  if (error) return res.status(500).json({ error: 'Failed to fetch inquiries', details: error.message });
+  if (error) return res.status(500).json({ error: 'Failed to fetch inquiries' });
   res.status(200).json(data || []);
 }
 
@@ -84,7 +86,7 @@ async function handleInquiryCreate(req, res) {
     const col = error.message?.match(/column "(\w+)"/)?.[1];
     if (col) { delete insertData[col]; const r = await supabase.from('participant_inquiries').insert(insertData).select().single(); data = r.data; error = r.error; }
   }
-  if (error) return res.status(500).json({ error: 'Failed to create inquiry', details: error.message });
+  if (error) return res.status(500).json({ error: 'Failed to create inquiry' });
   await supabase.from('audit_log').insert({ user_email: 'system', action: 'create', resource_type: 'participant_inquiry', resource_id: data.id, resource_name: `${data.first_name} ${data.last_name}` });
   res.status(201).json(data);
 }
@@ -123,11 +125,11 @@ async function handleInquiryDelete(req, res) {
 
 async function handleParticipantList(req, res) {
   const { status, search } = req.query;
-  let query = supabase.from('participants').select('*').order('created_at', { ascending: false });
+  let query = supabase.from('participants').select('*').order('first_name', { ascending: true }).order('last_name', { ascending: true });
   if (status) query = query.eq('status', status);
   if (search) query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,ndis_number.ilike.%${search}%`);
   const { data, error } = await query;
-  if (error) return res.status(500).json({ error: 'Failed to fetch participants', details: error.message });
+  if (error) return res.status(500).json({ error: 'Failed to fetch participants' });
   res.status(200).json(data || []);
 }
 
@@ -144,14 +146,21 @@ async function handleParticipantGet(req, res) {
   // Fetch files
   const { data: rawFiles } = await supabase.from('participant_files').select('*').eq('participant_id', id).order('created_at', { ascending: false });
 
-  // Generate public URLs for files
-  const files = (rawFiles || []).map(f => {
+  // Generate signed URLs for files (1 hour expiry — works regardless of bucket visibility)
+  const files = await Promise.all((rawFiles || []).map(async (f) => {
     if (f.storage_path) {
+      const { data: signedData, error: signError } = await supabase.storage
+        .from('participant-files')
+        .createSignedUrl(f.storage_path, 3600);
+      if (!signError && signedData?.signedUrl) {
+        return { ...f, public_url: signedData.signedUrl };
+      }
+      // Fallback to public URL if signing fails
       const { data: urlData } = supabase.storage.from('participant-files').getPublicUrl(f.storage_path);
       return { ...f, public_url: urlData?.publicUrl || null };
     }
     return { ...f, public_url: null };
-  });
+  }));
 
   res.status(200).json({ ...participant, progress_notes: notes || [], files });
 }
@@ -172,7 +181,7 @@ async function handleParticipantCreate(req, res) {
   }
 
   const { data, error } = await supabase.from('participants').insert(insertData).select().single();
-  if (error) return res.status(500).json({ error: 'Failed to create participant', details: error.message });
+  if (error) return res.status(500).json({ error: 'Failed to create participant' });
 
   await supabase.from('audit_log').insert({ user_email: 'system', action: 'create', resource_type: 'participant', resource_id: data.id, resource_name: `${data.first_name} ${data.last_name}` });
   res.status(201).json(data);
@@ -235,15 +244,44 @@ async function handleAddNote(req, res) {
   if (!body.participant_id) return res.status(400).json({ error: 'Missing participant_id' });
   if (!body.content) return res.status(400).json({ error: 'Missing content' });
 
+  const noteType = body.note_type?.trim() || 'progress';
+  const author = body.author?.trim() || 'Staff';
+
+  // Progress-type notes go to progress_notes table (unified with Progress Notes page)
+  if (noteType === 'progress') {
+    const { data: participant } = await supabase
+      .from('participants')
+      .select('first_name, last_name')
+      .eq('id', body.participant_id)
+      .single();
+
+    const participantName = participant
+      ? `${participant.first_name || ''} ${participant.last_name || ''}`.trim()
+      : '';
+
+    const { data, error } = await supabase.from('progress_notes').insert({
+      participant_id: body.participant_id,
+      participant_name: participantName,
+      content: body.content.trim(),
+      staff_name: author,
+      note_date: new Date().toISOString().split('T')[0],
+      shift: body.shift || null,
+    }).select().single();
+
+    if (error) return res.status(500).json({ error: 'Failed to add note' });
+    return res.status(201).json(data);
+  }
+
+  // Non-progress notes (incident, handover, etc.) go to participant_notes
   const insertData = {
     participant_id: body.participant_id,
     content: body.content.trim(),
-    note_type: body.note_type?.trim() || 'progress',
-    author: body.author?.trim() || 'Staff',
+    note_type: noteType,
+    author,
   };
 
   const { data, error } = await supabase.from('participant_notes').insert(insertData).select().single();
-  if (error) return res.status(500).json({ error: 'Failed to add note', details: error.message });
+  if (error) return res.status(500).json({ error: 'Failed to add note' });
   res.status(201).json(data);
 }
 
@@ -292,7 +330,7 @@ async function handleUploadFile(req, res) {
   const storagePath = `${body.participant_id}/${Date.now()}_${body.fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 
   const { error: uploadError } = await supabase.storage.from('participant-files').upload(storagePath, buffer, { contentType, upsert: false });
-  if (uploadError) return res.status(500).json({ error: 'Upload failed', details: uploadError.message });
+  if (uploadError) return res.status(500).json({ error: 'Upload failed' });
 
   const { data: urlData } = supabase.storage.from('participant-files').getPublicUrl(storagePath);
 
@@ -310,7 +348,7 @@ async function handleUploadFile(req, res) {
   const { data, error } = await supabase.from('participant_files').insert(insertData).select().single();
   if (error) {
     await supabase.storage.from('participant-files').remove([storagePath]);
-    return res.status(500).json({ error: 'Failed to save file record', details: error.message });
+    return res.status(500).json({ error: 'Failed to save file record' });
   }
 
   res.status(201).json({ ...data, public_url: urlData?.publicUrl || null });
@@ -348,7 +386,7 @@ async function handleAddInquiryNote(req, res) {
   };
 
   const { data, error } = await supabase.from('inquiry_notes').insert(insertData).select().single();
-  if (error) return res.status(500).json({ error: 'Failed to add note', details: error.message });
+  if (error) return res.status(500).json({ error: 'Failed to add note' });
   res.status(201).json(data);
 }
 
@@ -410,13 +448,13 @@ async function handleConvertInquiry(req, res) {
 
   // Create participant
   const { data: participant, error: createErr } = await supabase.from('participants').insert(participantData).select().single();
-  if (createErr) return res.status(500).json({ error: 'Failed to create participant', details: createErr.message });
+  if (createErr) return res.status(500).json({ error: 'Failed to create participant' });
 
   // Mark inquiry as converted
   const { data: updated, error: updateErr } = await supabase.from('participant_inquiries')
     .update({ status: 'Converted', converted_participant_id: participant.id, updated_at: new Date().toISOString() })
     .eq('id', inquiry_id).select().single();
-  if (updateErr) return res.status(500).json({ error: 'Participant created but failed to update inquiry', details: updateErr.message });
+  if (updateErr) return res.status(500).json({ error: 'Participant created but failed to update inquiry' });
 
   // Audit log
   await supabase.from('audit_log').insert([
@@ -461,7 +499,8 @@ async function handleMedicationCreate(req, res) {
 }
 
 async function handleMedicationUpdate(req, res) {
-  const { id, ...updates } = req.body;
+  // Strip the routing key — `action` is not a medication_charts column (PGRST204 otherwise)
+  const { id, action: _action, ...updates } = req.body;
   if (!id) return res.status(400).json({ error: 'id required' });
   updates.updated_at = new Date().toISOString();
   const { data, error } = await supabase.from('medication_charts').update(updates).eq('id', id).select().single();
@@ -514,6 +553,253 @@ async function handleContactDelete(req, res) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SUPPORT PLANS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SUPPORT_PLAN_FIELDS = [
+  'participant_id', 'plan_start_date', 'plan_end_date', 'plan_review_date',
+  'status', 'prepared_by', 'short_term_goals', 'long_term_goals',
+  'daily_support_needs', 'health_medical', 'behaviour_support',
+  'community_access', 'communication', 'risk_management',
+  'overnight_support', 'additional_notes',
+];
+
+// Table existence is assumed - run migration SQL first via Supabase Dashboard
+// See support-plans-migration.sql or GET /api/migrate-support-plans for the SQL
+
+async function handleSupportPlanGet(req, res) {
+  const { participant_id } = req.query;
+  if (!participant_id) return res.status(400).json({ error: 'participant_id required' });
+  const { data, error } = await supabase
+    .from('support_plans')
+    .select('*')
+    .eq('participant_id', participant_id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || null);
+}
+
+async function handleSupportPlanList(req, res) {
+  const { participant_id } = req.query;
+  if (!participant_id) return res.status(400).json({ error: 'participant_id required' });
+  const { data, error } = await supabase
+    .from('support_plans')
+    .select('*')
+    .eq('participant_id', participant_id)
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+}
+
+async function handleSupportPlanCreate(req, res) {
+  const body = req.body || {};
+  if (!body.participant_id) return res.status(400).json({ error: 'participant_id required' });
+
+  const insert = {};
+  for (const key of SUPPORT_PLAN_FIELDS) {
+    if (key in body && body[key] !== undefined) {
+      insert[key] = typeof body[key] === 'string' ? body[key].trim() : body[key];
+    }
+  }
+  if (!insert.status) insert.status = 'draft';
+
+  const { data, error } = await supabase.from('support_plans').insert(insert).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json(data);
+}
+
+async function handleSupportPlanUpdate(req, res) {
+  const { id, action: _action, ...fields } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id required' });
+
+  const updates = {};
+  for (const key of SUPPORT_PLAN_FIELDS) {
+    if (key in fields) {
+      updates[key] = typeof fields[key] === 'string' ? fields[key].trim() : fields[key];
+    }
+  }
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'No valid fields' });
+  updates.updated_at = new Date().toISOString();
+
+  const { data, error } = await supabase.from('support_plans').update(updates).eq('id', id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+}
+
+async function handleSupportPlanDelete(req, res) {
+  const { id } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id required' });
+  const { error } = await supabase.from('support_plans').delete().eq('id', id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RISK PROFILE HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function handleRiskProfileGet(req, res) {
+  const pid = req.query.participant_id;
+  if (!pid) return res.status(400).json({ error: 'participant_id required' });
+  const { data, error } = await supabase
+    .from('risk_profiles')
+    .select('*')
+    .eq('participant_id', pid)
+    .maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data);
+}
+
+async function handleRiskProfileCreate(req, res) {
+  const { participant_id, risks, review_date, next_review_date, reviewed_by, status, overall_risk_level, general_notes, environmental_context } = req.body;
+  if (!participant_id) return res.status(400).json({ error: 'participant_id required' });
+  const { data, error } = await supabase
+    .from('risk_profiles')
+    .insert({ participant_id, risks: risks || [], review_date, next_review_date, reviewed_by, status: status || 'active', overall_risk_level, general_notes, environmental_context })
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.status(201).json(data);
+}
+
+async function handleRiskProfileUpdate(req, res) {
+  const { id, ...updates } = req.body;
+  if (!id) return res.status(400).json({ error: 'id required' });
+  delete updates.action;
+  updates.updated_at = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('risk_profiles')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data);
+}
+
+async function handleRiskProfileDelete(req, res) {
+  const id = req.body?.id;
+  if (!id) return res.status(400).json({ error: 'id required' });
+  const { error } = await supabase.from('risk_profiles').delete().eq('id', id);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GOALS OF CARE HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const GOALS_FIELDS = [
+  'participant_id', 'goal_area', 'goal_description', 'target_outcome',
+  'strategies', 'responsible_person', 'start_date', 'target_date',
+  'review_date', 'status', 'progress_notes', 'progress_percentage', 'created_by',
+];
+
+async function handleGoalsOfCareList(req, res) {
+  const pid = req.query.participant_id;
+  if (!pid) return res.status(400).json({ error: 'participant_id required' });
+  const { data, error } = await supabase
+    .from('goals_of_care')
+    .select('*')
+    .eq('participant_id', pid)
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+}
+
+async function handleGoalsOfCareCreate(req, res) {
+  const body = req.body || {};
+  if (!body.participant_id || !body.goal_description) {
+    return res.status(400).json({ error: 'participant_id and goal_description required' });
+  }
+  const insert = {};
+  for (const key of GOALS_FIELDS) {
+    if (key in body && body[key] !== undefined) {
+      insert[key] = typeof body[key] === 'string' ? body[key].trim() : body[key];
+    }
+  }
+  const { data, error } = await supabase.from('goals_of_care').insert(insert).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json(data);
+}
+
+async function handleGoalsOfCareUpdate(req, res) {
+  const { id, action: _action, ...fields } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id required' });
+  const updates = {};
+  for (const key of GOALS_FIELDS) {
+    if (key in fields) {
+      updates[key] = typeof fields[key] === 'string' ? fields[key].trim() : fields[key];
+    }
+  }
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'No valid fields' });
+  updates.updated_at = new Date().toISOString();
+  const { data, error } = await supabase.from('goals_of_care').update(updates).eq('id', id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+}
+
+async function handleGoalsOfCareDelete(req, res) {
+  const id = req.body?.id;
+  if (!id) return res.status(400).json({ error: 'id required' });
+  const { error } = await supabase.from('goals_of_care').delete().eq('id', id);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HOSPITAL PASSPORT HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PASSPORT_FIELDS = [
+  'provider_name', 'provider_phone', 'provider_email', 'provider_address', 'provider_service',
+  'communication_style', 'communication_aids',
+  'things_i_like', 'things_i_dont_like', 'things_that_upset_me', 'things_that_calm_me',
+  'diagnoses', 'medical_conditions', 'medical_restrictions', 'pain_indicators', 'seizure_info', 'nfr_status', 'nfr_notes',
+  'mobility_transfers', 'equipment_aids', 'eating_drinking', 'personal_care_needs',
+  'behaviour_triggers', 'behaviour_strategies',
+  'routine_appointments', 'additional_notes', 'last_updated_by',
+];
+
+async function handleHospitalPassportGet(req, res) {
+  const { participant_id } = req.query;
+  if (!participant_id) return res.status(400).json({ error: 'participant_id required' });
+
+  const { data, error } = await supabase
+    .from('hospital_passports')
+    .select('*')
+    .eq('participant_id', participant_id)
+    .maybeSingle();
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (!data) return res.status(404).json({ error: 'Not found' });
+  res.json(data);
+}
+
+async function handleHospitalPassportSave(req, res) {
+  const { participant_id } = req.body;
+  if (!participant_id) return res.status(400).json({ error: 'participant_id required' });
+
+  const row = { participant_id };
+  for (const f of PASSPORT_FIELDS) {
+    if (req.body[f] !== undefined) row[f] = req.body[f];
+  }
+  row.updated_at = new Date().toISOString();
+
+  // Upsert — insert or update if exists
+  const { data, error } = await supabase
+    .from('hospital_passports')
+    .upsert(row, { onConflict: 'participant_id' })
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -537,6 +823,15 @@ export default async function handler(req, res) {
         case 'medications': return await handleMedicationList(req, res);
         // Participant contacts
         case 'contacts': return await handleContactList(req, res);
+        // Support plans
+        case 'support-plan-get': return await handleSupportPlanGet(req, res);
+        case 'support-plan-list': return await handleSupportPlanList(req, res);
+        // Hospital passport
+        case 'hospital-passport-get': return await handleHospitalPassportGet(req, res);
+        // Risk profiles
+        case 'risk-profile-get': return await handleRiskProfileGet(req, res);
+        // Goals of care
+        case 'goals-of-care-list': return await handleGoalsOfCareList(req, res);
         default:
           return res.status(400).json({ error: 'Invalid action' });
       }
@@ -563,6 +858,14 @@ export default async function handler(req, res) {
         case 'create-medication': return await handleMedicationCreate(req, res);
         // Contacts
         case 'create-contact': return await handleContactCreate(req, res);
+        // Support plans
+        case 'support-plan-create': return await handleSupportPlanCreate(req, res);
+        // Hospital passport
+        case 'hospital-passport-save': return await handleHospitalPassportSave(req, res);
+        // Risk profiles
+        case 'risk-profile-create': return await handleRiskProfileCreate(req, res);
+        // Goals of care
+        case 'goals-of-care-create': return await handleGoalsOfCareCreate(req, res);
         default:
           return res.status(400).json({ error: 'Invalid action' });
       }
@@ -574,6 +877,9 @@ export default async function handler(req, res) {
         case 'update-participant': return await handleParticipantUpdate(req, res);
         case 'update-note': return await handleUpdateNote(req, res);
         case 'update-medication': return await handleMedicationUpdate(req, res);
+        case 'support-plan-update': return await handleSupportPlanUpdate(req, res);
+        case 'risk-profile-update': return await handleRiskProfileUpdate(req, res);
+        case 'goals-of-care-update': return await handleGoalsOfCareUpdate(req, res);
         default:
           return await handleInquiryUpdate(req, res);
       }
@@ -588,6 +894,9 @@ export default async function handler(req, res) {
         case 'delete-file': return await handleDeleteFile(req, res);
         case 'delete-medication': return await handleMedicationDelete(req, res);
         case 'delete-contact': return await handleContactDelete(req, res);
+        case 'support-plan-delete': return await handleSupportPlanDelete(req, res);
+        case 'risk-profile-delete': return await handleRiskProfileDelete(req, res);
+        case 'goals-of-care-delete': return await handleGoalsOfCareDelete(req, res);
         default:
           return await handleInquiryDelete(req, res);
       }
@@ -596,6 +905,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Participants handler error:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

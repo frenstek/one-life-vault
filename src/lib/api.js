@@ -1,6 +1,7 @@
-export async function fetchDocuments(category, subcategory) {
+export async function fetchDocuments(category, subcategory, folder) {
   let params = category ? `&category=${encodeURIComponent(category)}` : '';
   if (subcategory) params += `&subcategory=${encodeURIComponent(subcategory)}`;
+  if (folder) params += `&folder=${encodeURIComponent(folder)}`;
   const res = await fetch(`/api/docs?action=list${params}`);
   if (!res.ok) throw new Error(`Failed to fetch documents: ${res.status}`);
   return res.json();
@@ -85,17 +86,60 @@ export function formatFileSize(bytes) {
   return `${(num / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
-export async function uploadDocument(fileName, fileData, category, subcategory) {
-  const res = await fetch('/api/docs', {
+export async function uploadDocument(fileName, fileData, category, subcategory, folder) {
+  // Estimate original file size from base64
+  const base64Len = typeof fileData === 'string' ? fileData.length : 0;
+  const fileSizeEstimate = Math.ceil(base64Len * 0.75);
+  const SIZE_LIMIT = 2 * 1024 * 1024; // 2MB — anything larger uses signed URL
+
+  if (fileSizeEstimate <= SIZE_LIMIT) {
+    const res = await fetch('/api/docs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'upload', fileName, fileData, category, subcategory: subcategory || undefined, folder: folder || undefined }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Upload failed: ${res.status}`);
+    }
+    return res.json();
+  }
+
+  // Large file — get signed URL, upload directly, then register metadata
+  const signRes = await fetch('/api/docs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'upload', fileName, fileData, category, subcategory: subcategory || undefined }),
+    body: JSON.stringify({ action: 'upload', fileName, category, subcategory: subcategory || undefined, folder: folder || undefined, requestSignedUrl: true }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Upload failed: ${res.status}`);
+  if (!signRes.ok) {
+    const err = await signRes.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to get upload URL: ${signRes.status}`);
   }
-  return res.json();
+  const { signedUrl, storagePath } = await signRes.json();
+
+  // Decode base64 to blob and upload directly
+  const raw = fileData.includes(',') ? fileData.split(',')[1] : fileData;
+  const binary = atob(raw);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const ext = fileName.split('.').pop()?.toLowerCase() || 'bin';
+  const mimeMap = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
+  const blob = new Blob([bytes], { type: mimeMap[ext] || 'application/octet-stream' });
+
+  const uploadRes = await fetch(signedUrl, { method: 'PUT', body: blob });
+  if (!uploadRes.ok) throw new Error(`Storage upload failed (${uploadRes.status})`);
+
+  // Register metadata — file already in storage
+  const metaRes = await fetch('/api/docs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'upload', fileName, category, subcategory: subcategory || undefined, folder: folder || undefined, directUpload: true, storagePath, fileSize: bytes.length }),
+  });
+  if (!metaRes.ok) {
+    const err = await metaRes.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to register document: ${metaRes.status}`);
+  }
+  return metaRes.json();
 }
 
 export async function updateDocument(id, updates) {
@@ -124,15 +168,54 @@ export async function deleteDocument(id) {
   return res.json();
 }
 
-export async function moveDocuments(ids, category, subcategory) {
+export async function moveDocuments(ids, category, subcategory, folder) {
   const res = await fetch('/api/docs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'move', ids, category, subcategory: subcategory || undefined }),
+    body: JSON.stringify({ action: 'move', ids, category, subcategory: subcategory || undefined, folder: folder || undefined }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Move failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function createFolder(name, category, subcategory, parentFolder) {
+  const res = await fetch('/api/docs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'create-folder', name, category, subcategory: subcategory || undefined, parentFolder: parentFolder || undefined }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Create folder failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteFolder(id) {
+  const res = await fetch('/api/docs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'delete-folder', id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete folder failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function renameFolder(id, newName) {
+  const res = await fetch('/api/docs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'rename-folder', id, newName }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Rename folder failed: ${res.status}`);
   }
   return res.json();
 }
@@ -153,8 +236,6 @@ export async function bulkDeleteDocuments(ids) {
 // ─── Staff Management API ───────────────────────────────────────────────
 
 export const STAFF_DOCUMENT_TYPES = [
-  'Police Check',
-  'WWCC',
   'NDIS Worker Screening Check',
   'First Aid Certificate',
   'CPR Certificate',
@@ -165,6 +246,7 @@ export const STAFF_DOCUMENT_TYPES = [
   'Qualifications/Degree',
   'Employment Contract',
   'Visa/Work Rights',
+  'Resume',
 ];
 
 export async function fetchStaff(status) {
@@ -220,16 +302,73 @@ export async function deleteStaffMember(id) {
 }
 
 export async function uploadStaffDocument(staffId, documentType, fileName, fileData, issueDate, expiryDate, notes) {
-  const res = await fetch('/api/staff-docs', {
+  // Estimate file size from base64
+  const base64Len = typeof fileData === 'string' ? fileData.length : 0;
+  const fileSizeEstimate = Math.ceil(base64Len * 0.75);
+  const SIZE_LIMIT = 2 * 1024 * 1024; // 2MB — anything larger uses signed URL to avoid Vercel 413
+
+  if (fileSizeEstimate <= SIZE_LIMIT) {
+    // File fits within Vercel body limit — send base64 through API route
+    const res = await fetch('/api/staff-docs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ staffId, documentType, fileName, fileData, issueDate, expiryDate, notes }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Upload failed: ${res.status}`);
+    }
+    return res.json();
+  }
+
+  // Large file — get a signed upload URL, upload directly to Supabase Storage, then register metadata
+  // Step 1: Request signed upload URL
+  const signRes = await fetch('/api/staff-docs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ staffId, documentType, fileName, fileData, issueDate, expiryDate, notes }),
+    body: JSON.stringify({ staffId, documentType, fileName, requestSignedUrl: true }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Upload document failed: ${res.status}`);
+  if (!signRes.ok) {
+    const err = await signRes.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to get upload URL: ${signRes.status}`);
   }
-  return res.json();
+  const { signedUrl, storagePath, token } = await signRes.json();
+
+  // Step 2: Decode base64 to Blob and upload directly to Supabase Storage
+  const raw = fileData.includes(',') ? fileData.split(',')[1] : fileData;
+  const binary = atob(raw);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const ext = fileName.split('.').pop()?.toLowerCase() || 'bin';
+  const mimeMap = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
+  const contentType = mimeMap[ext] || 'application/octet-stream';
+  const blob = new Blob([bytes], { type: contentType });
+
+  let uploadRes;
+  try {
+    uploadRes = await fetch(signedUrl, {
+      method: 'PUT',
+      body: blob,
+    });
+  } catch (networkErr) {
+    throw new Error('Upload failed — check your connection and try again. If the file is very large, try a smaller file.');
+  }
+  if (!uploadRes.ok) {
+    const errText = await uploadRes.text().catch(() => '');
+    throw new Error(`Storage upload failed (${uploadRes.status}). ${errText || 'Try a smaller file or different format.'}`);
+  }
+
+  // Step 3: Register metadata (file already in storage)
+  const metaRes = await fetch('/api/staff-docs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ staffId, documentType, fileName, storagePath, fileSize: bytes.length, issueDate, expiryDate, notes, directUpload: true }),
+  });
+  if (!metaRes.ok) {
+    const err = await metaRes.json().catch(() => ({}));
+    throw new Error(err.error || `Upload document failed: ${metaRes.status}`);
+  }
+  return metaRes.json();
 }
 
 export async function deleteStaffDocument(id) {
@@ -480,11 +619,32 @@ export async function fetchActiveClocks(staffId) {
   return res.json();
 }
 
+function getGeoLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: Math.round(pos.coords.accuracy),
+      }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  });
+}
+
 export async function clockIn(staffId, notes) {
+  const geo = await getGeoLocation();
   const res = await fetch('/api/time-clock', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'clock-in', staff_id: staffId, notes }),
+    body: JSON.stringify({
+      action: 'clock-in',
+      staff_id: staffId,
+      notes,
+      ...(geo && { clock_in_lat: geo.lat, clock_in_lng: geo.lng, clock_in_accuracy: geo.accuracy }),
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -494,15 +654,29 @@ export async function clockIn(staffId, notes) {
 }
 
 export async function clockOut(staffId, notes) {
+  const geo = await getGeoLocation();
   const res = await fetch('/api/time-clock', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'clock-out', staff_id: staffId, notes }),
+    body: JSON.stringify({
+      action: 'clock-out',
+      staff_id: staffId,
+      notes,
+      ...(geo && { clock_out_lat: geo.lat, clock_out_lng: geo.lng, clock_out_accuracy: geo.accuracy }),
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Clock-out failed: ${res.status}`);
   }
+  return res.json();
+}
+
+export async function fetchLocationLog(startDate, endDate, staffId) {
+  let url = `/api/time-clock?action=location-log&start_date=${startDate}&end_date=${endDate}`;
+  if (staffId) url += `&staff_id=${staffId}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch location log: ${res.status}`);
   return res.json();
 }
 
@@ -590,14 +764,135 @@ export async function fetchCurrentUser(token) {
   return res.json();
 }
 
+export async function refreshToken(refresh_token) {
+  const res = await fetch('/api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'refresh', refresh_token }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Token refresh failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function signupUser(email, password, full_name, role) {
+  const res = await fetch('/api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'signup', email, password, full_name, role }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Signup failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchAllUsers(token) {
+  const res = await fetch('/api/auth', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action: 'list-users' }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Fetch users failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateUser(token, user_id, { full_name, email, role }) {
+  const res = await fetch('/api/auth', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action: 'update-user', user_id, full_name, email, role }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update user failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateUserRole(token, user_id, role) {
+  const res = await fetch('/api/auth', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action: 'update-role', user_id, role }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update role failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteUser(token, user_id) {
+  const res = await fetch('/api/auth', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action: 'delete-user', user_id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete user failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function resetUserPassword(token, user_id, new_password) {
+  const res = await fetch('/api/auth', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action: 'reset-password', user_id, new_password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Reset password failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export const CATEGORIES = [
   'Human Resources',
   'Onboarding',
   'Clinical',
   'Governance & Compliance',
   'Operations',
+  'Policies & Procedures',
+  'Invoices',
   'Completed Records',
+  'Archive',
 ];
+
+export const SUBCATEGORIES = {
+  'Human Resources': ['Job Descriptions', 'Employment', 'Performance', 'Induction', 'Training'],
+  'Onboarding': ['Participant Intake', 'Service Agreements', 'Welcome Packs', 'Transition'],
+  'Clinical': ['Medication', 'Behaviour Support', 'Care Plans', 'Complex Health', 'Nutrition', 'Capability Assessments'],
+  'Governance & Compliance': ['NDIS Manual', 'NDIS Information', 'Audits', 'Risk Management', 'Compliance', 'Business Plans', 'Policies & Modules'],
+  'Operations': ['SIL & SDA', 'Safety & WHS', 'Rostering', 'Incidents & Complaints', 'Records', 'General'],
+  'Policies & Procedures': ['Core 1 - Rights & Responsibilities', 'Core 2 - Governance & Operations', 'Core 3 - Provision of Supports', 'Core 4 - Support Environment', 'Module 1 - High Intensity', 'Module 2A - Behaviour Support'],
+  'Invoices': ['Supplier Invoices', 'Service Invoices', 'Receipts'],
+  'Completed Records': [],
+  'Archive': [],
+};
 
 // ─── Property Management API ────────────────────────────────────────────
 
@@ -668,6 +963,19 @@ export async function addInspection(data) {
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Add inspection failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function addRiskAssessment(data) {
+  const res = await fetch('/api/properties', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'add-risk-assessment', ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Add risk assessment failed: ${res.status}`);
   }
   return res.json();
 }
@@ -973,7 +1281,7 @@ export async function updateAnnouncement(id, data) {
   const res = await fetch('/api/features', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, ...data }),
+    body: JSON.stringify({ action: 'update-announcement', id, ...data }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -982,11 +1290,24 @@ export async function updateAnnouncement(id, data) {
   return res.json();
 }
 
+export async function uploadAnnouncementImage(fileName, fileData) {
+  const res = await fetch('/api/features?action=upload-announcement-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fileName, fileData }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Upload announcement image failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function deleteAnnouncement(id) {
   const res = await fetch('/api/features', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'announcement', id }),
+    body: JSON.stringify({ action: 'delete-announcement', id }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -1011,7 +1332,7 @@ export async function sendMessage(data) {
   const res = await fetch('/api/features', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'message', ...data }),
+    body: JSON.stringify({ action: 'send-message', ...data }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -1185,6 +1506,177 @@ export async function deleteParticipantContact(id) {
   return res.json();
 }
 
+// ─── Support Plans API ──────────────────────────────────────────────────────
+
+export async function fetchSupportPlan(participantId) {
+  const res = await fetch(`/api/participants?action=support-plan-get&participant_id=${encodeURIComponent(participantId)}`);
+  if (!res.ok) throw new Error(`Failed to fetch support plan: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchSupportPlans(participantId) {
+  const res = await fetch(`/api/participants?action=support-plan-list&participant_id=${encodeURIComponent(participantId)}`);
+  if (!res.ok) throw new Error(`Failed to fetch support plans: ${res.status}`);
+  return res.json();
+}
+
+export async function createSupportPlan(data) {
+  const res = await fetch('/api/participants', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'support-plan-create', ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Create support plan failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateSupportPlan(id, data) {
+  const res = await fetch('/api/participants', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'support-plan-update', id, ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update support plan failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteSupportPlan(id) {
+  const res = await fetch('/api/participants', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'support-plan-delete', id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete support plan failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Goals of Care ──────────────────────────────────────────────────────────
+
+export async function fetchGoalsOfCare(participantId) {
+  const res = await fetch(`/api/participants?action=goals-of-care-list&participant_id=${encodeURIComponent(participantId)}`);
+  if (!res.ok) throw new Error(`Failed to fetch goals: ${res.status}`);
+  return res.json();
+}
+
+export async function createGoalOfCare(data) {
+  const res = await fetch('/api/participants', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'goals-of-care-create', ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Create goal failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateGoalOfCare(id, data) {
+  const res = await fetch('/api/participants', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'goals-of-care-update', id, ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update goal failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteGoalOfCare(id) {
+  const res = await fetch('/api/participants', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'goals-of-care-delete', id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete goal failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Risk Profiles ──────────────────────────────────────────────────────────
+
+export async function fetchRiskProfile(participantId) {
+  const res = await fetch(`/api/participants?action=risk-profile-get&participant_id=${encodeURIComponent(participantId)}`);
+  if (!res.ok) throw new Error(`Failed to fetch risk profile: ${res.status}`);
+  return res.json();
+}
+
+export async function createRiskProfile(data) {
+  const res = await fetch('/api/participants', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'risk-profile-create', ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Create risk profile failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateRiskProfile(id, data) {
+  const res = await fetch('/api/participants', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'risk-profile-update', id, ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update risk profile failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteRiskProfile(id) {
+  const res = await fetch('/api/participants', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'risk-profile-delete', id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete risk profile failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Hospital Passport API ──────────────────────────────────────────────────
+
+export async function fetchHospitalPassport(participantId) {
+  const res = await fetch(`/api/participants?action=hospital-passport-get&participant_id=${encodeURIComponent(participantId)}`);
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    throw new Error(`Failed to fetch hospital passport: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function saveHospitalPassport(data) {
+  const res = await fetch('/api/participants', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'hospital-passport-save', ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Save hospital passport failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 // ─── Continuous Improvement API ──────────────────────────────────────────────
 
 export async function fetchCIRegister(status, priority) {
@@ -1264,6 +1756,81 @@ export async function deleteRiskEntry(id) {
     method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
   });
   if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Delete risk entry failed: ${res.status}`); }
+  return res.json();
+}
+
+// ─── Policy Register API ─────────────────────────────────────────────────────
+
+export async function fetchPolicyRegister(status, source) {
+  let url = '/api/features?action=policy-list';
+  if (status) url += `&status=${encodeURIComponent(status)}`;
+  if (source) url += `&source=${encodeURIComponent(source)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch policy register: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchPolicyStats() {
+  const res = await fetch('/api/features?action=policy-stats');
+  if (!res.ok) throw new Error(`Failed to fetch policy stats: ${res.status}`);
+  return res.json();
+}
+
+export async function createPolicyEntry(data) {
+  const res = await fetch('/api/features?action=policy-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Create failed: ${res.status}`); }
+  return res.json();
+}
+
+export async function updatePolicyEntry(id, data) {
+  const res = await fetch('/api/features?action=policy-update', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...data }) });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Update failed: ${res.status}`); }
+  return res.json();
+}
+
+export async function deletePolicyEntry(id) {
+  const res = await fetch('/api/features?action=policy-delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Delete failed: ${res.status}`); }
+  return res.json();
+}
+
+// ─── Conflict of Interest Register API ───────────────────────────────────────
+
+export async function fetchConflictOfInterest(status) {
+  let url = '/api/features?action=coi-list';
+  if (status) url += `&status=${encodeURIComponent(status)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch conflict of interest register: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchConflictStats() {
+  const res = await fetch('/api/features?action=coi-stats');
+  if (!res.ok) throw new Error(`Failed to fetch conflict stats: ${res.status}`);
+  return res.json();
+}
+
+export async function createConflictEntry(data) {
+  const res = await fetch('/api/features?action=coi-create', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Create conflict entry failed: ${res.status}`); }
+  return res.json();
+}
+
+export async function updateConflictEntry(id, data) {
+  const res = await fetch('/api/features?action=coi-update', {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...data }),
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Update conflict entry failed: ${res.status}`); }
+  return res.json();
+}
+
+export async function deleteConflictEntry(id) {
+  const res = await fetch('/api/features?action=coi-delete', {
+    method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Delete conflict entry failed: ${res.status}`); }
   return res.json();
 }
 
@@ -1347,6 +1914,81 @@ export async function deleteFCEntry(id) {
     method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
   });
   if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Delete FC entry failed: ${res.status}`); }
+  return res.json();
+}
+
+// ─── SDS Register API ────────────────────────────────────────────────────────
+
+export async function fetchSDSRegister(risk_rating) {
+  let url = '/api/features?action=sds-list';
+  if (risk_rating) url += `&risk_rating=${encodeURIComponent(risk_rating)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch SDS register: ${res.status}`);
+  return res.json();
+}
+
+export async function createSDSEntry(data) {
+  const res = await fetch('/api/features?action=sds-create', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Create SDS entry failed: ${res.status}`); }
+  return res.json();
+}
+
+export async function updateSDSEntry(id, data) {
+  const res = await fetch('/api/features?action=sds-update', {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...data }),
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Update SDS entry failed: ${res.status}`); }
+  return res.json();
+}
+
+export async function deleteSDSEntry(id) {
+  const res = await fetch('/api/features?action=sds-delete', {
+    method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Delete SDS entry failed: ${res.status}`); }
+  return res.json();
+}
+
+// ─── Infection Register API ──────────────────────────────────────────────────
+
+export async function fetchInfectionRegister(status, infection_type) {
+  let url = '/api/features?action=infection-list';
+  if (status) url += `&status=${encodeURIComponent(status)}`;
+  if (infection_type) url += `&infection_type=${encodeURIComponent(infection_type)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch infection register: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchInfectionStats() {
+  const res = await fetch('/api/features?action=infection-stats');
+  if (!res.ok) throw new Error(`Failed to fetch infection stats: ${res.status}`);
+  return res.json();
+}
+
+export async function createInfectionEntry(data) {
+  const res = await fetch('/api/features?action=infection-create', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Create infection entry failed: ${res.status}`); }
+  return res.json();
+}
+
+export async function updateInfectionEntry(id, data) {
+  const res = await fetch('/api/features?action=infection-update', {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...data }),
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Update infection entry failed: ${res.status}`); }
+  return res.json();
+}
+
+export async function deleteInfectionEntry(id) {
+  const res = await fetch('/api/features?action=infection-delete', {
+    method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Delete infection entry failed: ${res.status}`); }
   return res.json();
 }
 
@@ -1529,13 +2171,509 @@ export async function copyROCDay(rosterId, fromDay, toDays) {
   return res.json();
 }
 
+// ─── Progress Notes API ──────────────────────────────────────────────────────
+
+export async function fetchProgressNotes(participantName, startDate, endDate, search, { participantId } = {}) {
+  let url = '/api/features?action=pn-list';
+  if (participantId) url += `&participant_id=${encodeURIComponent(participantId)}`;
+  else if (participantName) url += `&participant_name=${encodeURIComponent(participantName)}`;
+  if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
+  if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch progress notes: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchProgressNoteStats() {
+  const res = await fetch('/api/features?action=pn-stats');
+  if (!res.ok) throw new Error(`Failed to fetch progress note stats: ${res.status}`);
+  return res.json();
+}
+
+export async function createProgressNote(data) {
+  const res = await fetch('/api/features?action=pn-create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Create progress note failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateProgressNote(id, data) {
+  const res = await fetch('/api/features?action=pn-update', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update progress note failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteProgressNote(id) {
+  const res = await fetch('/api/features?action=pn-delete', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete progress note failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function bulkImportProgressNotes(notesArray) {
+  const res = await fetch('/api/features?action=pn-bulk-import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes: notesArray }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Bulk import failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Invoices ─────────────────────────────────────────────────────────────────
+
+export async function fetchInvoices(status, participantId) {
+  let params = '';
+  if (status) params += `&status=${encodeURIComponent(status)}`;
+  if (participantId) params += `&participant_id=${encodeURIComponent(participantId)}`;
+  const res = await fetch(`/api/features?action=inv-list${params}`);
+  if (!res.ok) throw new Error(`Failed to fetch invoices: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchInvoice(id) {
+  const res = await fetch(`/api/features?action=inv-get&id=${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error(`Failed to fetch invoice: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchInvoiceStats() {
+  const res = await fetch('/api/features?action=inv-stats');
+  if (!res.ok) throw new Error(`Failed to fetch invoice stats: ${res.status}`);
+  return res.json();
+}
+
+export async function createInvoice(data) {
+  const res = await fetch('/api/features?action=inv-create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Create invoice failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateInvoice(id, data) {
+  const res = await fetch('/api/features?action=inv-update', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update invoice failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteInvoice(id) {
+  const res = await fetch('/api/features?action=inv-delete', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete invoice failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function uploadInvoiceFile(data) {
+  const res = await fetch('/api/features?action=inv-upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Upload invoice file failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── NDIS Invoice Generator ──────────────────────────────────────────────────
+
+export async function fetchNDISInvoiceData(participantId, startDate, endDate) {
+  const res = await fetch(`/api/features?action=ndis-invoice-data&participant_id=${encodeURIComponent(participantId)}&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to fetch NDIS invoice data: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Payslips ─────────────────────────────────────────────────────────────────
+
+export async function fetchPayslipData(startDate, endDate) {
+  const res = await fetch(`/api/features?action=payslip-data&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`);
+  if (!res.ok) throw new Error(`Failed to fetch payslip data: ${res.status}`);
+  return res.json();
+}
+
+// ─── Role Permissions ────────────────────────────────────────────────────────
+
+export async function fetchPermissions() {
+  const res = await fetch('/api/features?action=permissions-list');
+  if (!res.ok) throw new Error('Failed to fetch permissions');
+  return res.json();
+}
+
+export async function updatePermission(role, feature, canAccess) {
+  const res = await fetch('/api/features?action=permissions-update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role, feature, can_access: canAccess }),
+  });
+  if (!res.ok) throw new Error('Failed to update permission');
+  return res.json();
+}
+
+// ─── Onboarding Checklist API ────────────────────────────────────────────────
+
+export async function fetchOnboardingProgress(staffId) {
+  const res = await fetch(`/api/onboarding?action=progress&staffId=${encodeURIComponent(staffId)}`);
+  if (!res.ok) throw new Error(`Failed to fetch onboarding progress: ${res.status}`);
+  return res.json();
+}
+
+export async function toggleOnboardingItem(staffId, templateId, completed, completedBy) {
+  const res = await fetch('/api/onboarding?action=toggle', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ staffId, templateId, completed, completedBy }),
+  });
+  if (!res.ok) throw new Error(`Failed to toggle onboarding item: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchBulkOnboardingProgress(staffIds) {
+  const res = await fetch(`/api/onboarding?action=bulk-progress&staffIds=${staffIds.join(',')}`);
+  if (!res.ok) throw new Error(`Failed to fetch bulk onboarding progress: ${res.status}`);
+  return res.json();
+}
+
+// ─── Asset Register API ──────────────────────────────────────────────────────
+
+export async function fetchAssets(category, status) {
+  let url = '/api/features?action=asset-list';
+  if (category) url += `&category=${encodeURIComponent(category)}`;
+  if (status) url += `&status=${encodeURIComponent(status)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch assets: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchAssetStats() {
+  const res = await fetch('/api/features?action=asset-stats');
+  if (!res.ok) throw new Error(`Failed to fetch asset stats: ${res.status}`);
+  return res.json();
+}
+
+export async function createAsset(data) {
+  const res = await fetch('/api/features', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'asset-create', ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Create asset failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateAsset(id, data) {
+  const res = await fetch('/api/features', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'asset-update', id, ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update asset failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteAsset(id) {
+  const res = await fetch('/api/features', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'asset-delete', id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete asset failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Expense Tracker API ─────────────────────────────────────────────────────
+
+export async function fetchExpenses(category, status, month) {
+  let url = '/api/features?action=expense-list';
+  if (category) url += `&category=${encodeURIComponent(category)}`;
+  if (status) url += `&status=${encodeURIComponent(status)}`;
+  if (month) url += `&month=${encodeURIComponent(month)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch expenses: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchExpenseStats(month) {
+  let url = '/api/features?action=expense-stats';
+  if (month) url += `&month=${encodeURIComponent(month)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch expense stats: ${res.status}`);
+  return res.json();
+}
+
+export async function createExpense(data) {
+  const res = await fetch('/api/features', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'expense-create', ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Create expense failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateExpense(id, data) {
+  const res = await fetch('/api/features', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'expense-update', id, ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update expense failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteExpense(id) {
+  const res = await fetch('/api/features', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'expense-delete', id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete expense failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Orientation Guide API ─────────────────────────────────────────────────────
+
+export async function fetchOrientation(participantId) {
+  const res = await fetch(`/api/features?action=orientation-get&participant_id=${encodeURIComponent(participantId)}`);
+  if (!res.ok) throw new Error(`Failed to fetch orientation: ${res.status}`);
+  return res.json();
+}
+
+export async function saveOrientation(data) {
+  const res = await fetch('/api/features?action=orientation-save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to save orientation: ${res.status}`);
+  return res.json();
+}
+
+// ─── Legislation Register API ─────────────────────────────────────────────────
+
+export async function fetchLegislation(complianceStatus, legislationType, jurisdiction) {
+  let url = '/api/features?action=legislation-list';
+  if (complianceStatus) url += `&compliance_status=${encodeURIComponent(complianceStatus)}`;
+  if (legislationType) url += `&legislation_type=${encodeURIComponent(legislationType)}`;
+  if (jurisdiction) url += `&jurisdiction=${encodeURIComponent(jurisdiction)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch legislation: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchLegislationStats() {
+  const res = await fetch('/api/features?action=legislation-stats');
+  if (!res.ok) throw new Error(`Failed to fetch legislation stats: ${res.status}`);
+  return res.json();
+}
+
+export async function createLegislation(data) {
+  const res = await fetch('/api/features', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'legislation-create', ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Create legislation failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateLegislation(id, data) {
+  const res = await fetch('/api/features', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'legislation-update', id, ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update legislation failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteLegislation(id) {
+  const res = await fetch('/api/features', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'legislation-delete', id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete legislation failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Recurring Expenses API ───────────────────────────────────────────────────
+
+export async function fetchRecurring(activeOnly = true) {
+  const res = await fetch(`/api/features?action=recurring-list&active_only=${activeOnly}`);
+  if (!res.ok) throw new Error(`Failed to fetch recurring: ${res.status}`);
+  return res.json();
+}
+
+export async function createRecurring(data) {
+  const res = await fetch('/api/features', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'recurring-create', ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Create recurring failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateRecurring(id, data) {
+  const res = await fetch('/api/features', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'recurring-update', id, ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update recurring failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteRecurring(id) {
+  const res = await fetch('/api/features', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'recurring-delete', id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete recurring failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Team Chat API ───────────────────────────────────────────────────────────
+
+export async function fetchTeamChat() {
+  const res = await fetch('/api/features?action=team-chat');
+  if (!res.ok) throw new Error('Failed to fetch team chat');
+  return res.json();
+}
+
+export async function sendTeamChat(data) {
+  const res = await fetch('/api/features', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'send-team-chat', ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to send message');
+  }
+  return res.json();
+}
+
+export async function deleteTeamChat(id, senderId, role) {
+  const res = await fetch('/api/features', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'delete-team-chat', id, sender_id: senderId, role }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to delete message');
+  }
+  return res.json();
+}
+
+// ─── Activity Feed ────────────────────────────────────────────────────────────
+
+export async function fetchActivityFeed() {
+  const res = await fetch('/api/features?action=activity-feed');
+  if (!res.ok) throw new Error('Failed to fetch activity feed');
+  return res.json();
+}
+
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 export function formatDate(dateString) {
   if (!dateString) return '--';
+  // Date-only values (due dates, expiry dates, note dates) are calendar days, not
+  // moments: print them as dd/mm/yyyy rather than "Xd ago"/"Just now".
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    const [y, m, d] = dateString.split('-');
+    return `${d}/${m}/${y}`;
+  }
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return String(dateString);
   const now = new Date();
   const diffMs = now - date;
+  // Future timestamps (scheduled/due) — relative wording makes no sense, print the date
+  if (diffMs < -12 * 3600000) return date.toLocaleDateString('en-AU');
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
@@ -1550,4 +2688,154 @@ export function formatDate(dateString) {
     month: 'short',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
   });
+}
+
+// ─── Audit Calendar ──────────────────────────────────────────────────────────
+
+export async function fetchAuditEvents() {
+  const res = await fetch('/api/features?action=audit-list');
+  if (!res.ok) throw new Error(`Failed to fetch audit events: ${res.status}`);
+  return res.json();
+}
+
+export async function createAuditEvent(data) {
+  const res = await fetch('/api/features?action=audit-create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Create audit event failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateAuditEvent(id, data) {
+  const res = await fetch('/api/features?action=audit-update', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Update audit event failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteAuditEvent(id) {
+  const res = await fetch('/api/features?action=audit-delete', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete audit event failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Expense Hub API (Finance Hub synced data) ────────────────────────────────
+
+export async function fetchHubExpenses(month) {
+  const params = new URLSearchParams({ action: 'hub-expenses' });
+  if (month) params.set('month', month);
+  const res = await fetch(`/api/features?${params}`);
+  if (!res.ok) throw new Error(`Failed to fetch hub expenses: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchHubInvoices(month) {
+  const params = new URLSearchParams({ action: 'hub-invoices' });
+  if (month) params.set('month', month);
+  const res = await fetch(`/api/features?${params}`);
+  if (!res.ok) throw new Error(`Failed to fetch hub invoices: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchHubStats(month) {
+  const params = new URLSearchParams({ action: 'hub-stats' });
+  if (month) params.set('month', month);
+  const res = await fetch(`/api/features?${params}`);
+  if (!res.ok) throw new Error(`Failed to fetch hub stats: ${res.status}`);
+  return res.json();
+}
+
+export async function createHubInvoice(data) {
+  const res = await fetch('/api/features?action=hub-invoice-create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to create invoice: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateHubInvoice(data) {
+  const res = await fetch('/api/features?action=hub-invoice-update', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to update invoice: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteHubInvoice(id) {
+  const res = await fetch(`/api/features?action=hub-invoice-delete&id=${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`Failed to delete invoice: ${res.status}`);
+  return res.json();
+}
+
+// ─── Rosters (admin only; every call carries the session token) ─────────
+
+const rosterHeaders = (token) => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${token}` });
+async function rosterRes(res, what) {
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `${what} failed: ${res.status}`); }
+  return res.json();
+}
+export async function fetchRosters(token, participantId) {
+  let url = '/api/rosters?action=list';
+  if (participantId) url += `&participant_id=${encodeURIComponent(participantId)}`;
+  return rosterRes(await fetch(url, { headers: rosterHeaders(token) }), 'Load rosters');
+}
+export async function getRosterLink(token, id) {
+  return rosterRes(await fetch(`/api/rosters?action=link&id=${encodeURIComponent(id)}`, { headers: rosterHeaders(token) }), 'Open roster');
+}
+export async function uploadRoster(token, data) {
+  return rosterRes(await fetch('/api/rosters?action=upload', { method: 'POST', headers: rosterHeaders(token), body: JSON.stringify({ action: 'upload', ...data }) }), 'Upload roster');
+}
+export async function updateRoster(token, data) {
+  return rosterRes(await fetch('/api/rosters', { method: 'PATCH', headers: rosterHeaders(token), body: JSON.stringify(data) }), 'Update roster');
+}
+export async function deleteRoster(token, id) {
+  return rosterRes(await fetch('/api/rosters', { method: 'DELETE', headers: rosterHeaders(token), body: JSON.stringify({ id }) }), 'Delete roster');
+}
+
+// ─── Payment Review Desk (admin/manager; every call carries the session token) ─
+
+async function prRes(res, what) {
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `${what} failed: ${res.status}`); }
+  return res.json();
+}
+export async function prGet(token, action, params = {}) {
+  const qs = new URLSearchParams({ action, ...params }).toString();
+  return prRes(await fetch(`/api/payment-reviews?${qs}`, { headers: rosterHeaders(token) }), 'Load');
+}
+export async function prPost(token, action, body = {}) {
+  return prRes(await fetch(`/api/payment-reviews?action=${action}`, { method: 'POST', headers: rosterHeaders(token), body: JSON.stringify({ action, ...body }) }), 'Save');
+}
+export async function prGapsPdf(token, reviewId) {
+  const res = await fetch(`/api/payment-reviews?action=gaps-pdf&review_id=${encodeURIComponent(reviewId)}`, { headers: rosterHeaders(token) });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Gaps PDF failed: ${res.status}`); }
+  const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')?.[1] || 'gaps.pdf';
+  return { blob: await res.blob(), name };
 }

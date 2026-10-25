@@ -4,8 +4,6 @@
 
 // All required document types for NDIS disability support workers
 export const REQUIRED_DOCUMENT_TYPES = [
-  'Police Check (National)',
-  'Working with Children Check (WWCC)',
   'NDIS Worker Screening Check',
   'First Aid Certificate',
   'CPR Certificate',
@@ -16,6 +14,7 @@ export const REQUIRED_DOCUMENT_TYPES = [
   'Qualifications/Degree',
   'Employment Contract',
   'Visa/Work Rights',
+  'Resume',
 ];
 
 /**

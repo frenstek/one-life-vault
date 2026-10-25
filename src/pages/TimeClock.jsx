@@ -13,6 +13,7 @@ import {
   HiArrowDownTray,
   HiUser,
   HiUsers,
+  HiMapPin,
 } from 'react-icons/hi2';
 import {
   fetchStaff,
@@ -28,6 +29,8 @@ import {
 } from '../lib/api';
 import AddStaffModal from '../components/AddStaffModal';
 import Modal, { ModalBody, ModalFooter, ButtonPrimary, ButtonSecondary } from '../components/ui/Modal';
+import { useAuth } from '../contexts/AuthContext';
+import { toLocalDate, toLocalDatetime } from '../lib/dates';
 
 function formatDuration(ms, showSeconds) {
   if (!ms || ms <= 0) return showSeconds ? '0h 0m 0s' : '0h 0m';
@@ -76,8 +79,19 @@ function getWeekRange(date) {
   return { start, end };
 }
 
-function toDateStr(d) {
-  return d.toISOString().split('T')[0];
+const toDateStr = toLocalDate;
+
+// Find the staff row that belongs to the logged-in profile (same match as Sidebar)
+function findMyStaff(staffList, profile) {
+  if (!profile) return null;
+  const myName = profile.full_name?.toLowerCase()?.trim();
+  const myEmail = profile.email?.toLowerCase()?.trim();
+  return (
+    staffList.find((s) => {
+      const name = `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase().trim();
+      return (myName && name === myName) || (myEmail && s.email?.toLowerCase()?.trim() === myEmail);
+    }) || null
+  );
 }
 
 // Convert array of objects to CSV string and trigger download
@@ -108,6 +122,8 @@ function downloadCsv(filename, rows) {
 }
 
 export default function TimeClock() {
+  const { profile, hasRole } = useAuth();
+  const canPickStaff = hasRole(['admin', 'manager', 'owner']);
   const [view, setView] = useState('mine'); // 'mine' | 'all'
   const [staff, setStaff] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState('');
@@ -119,6 +135,7 @@ export default function TimeClock() {
   const [breakElapsed, setBreakElapsed] = useState(0);
   const [weekOf, setWeekOf] = useState(new Date());
   const [editModal, setEditModal] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
   const [addStaffModal, setAddStaffModal] = useState(false);
   const [notes, setNotes] = useState('');
   const [allSummary, setAllSummary] = useState([]);
@@ -130,7 +147,6 @@ export default function TimeClock() {
   function loadStaff() {
     return fetchStaff('active').then((data) => {
       setStaff(data);
-      if (data.length > 0 && !selectedStaff) setSelectedStaff(data[0].id);
       if (data.length === 0) setLoading(false);
       return data;
     }).catch(() => {
@@ -142,6 +158,21 @@ export default function TimeClock() {
   useEffect(() => {
     loadStaff();
   }, []);
+
+  // Default the selector to the logged-in user's own staff row. Admin/manager/owner
+  // fall back to the first row; other roles are locked to themselves.
+  useEffect(() => {
+    if (staff.length === 0) return;
+    const mine = findMyStaff(staff, profile);
+    if (mine) {
+      if (!selectedStaff || (!canPickStaff && selectedStaff !== mine.id)) setSelectedStaff(mine.id);
+      return;
+    }
+    if (!selectedStaff) {
+      if (canPickStaff) setSelectedStaff(staff[0].id);
+      else setLoading(false); // staff user with no matching staff row — nothing to show
+    }
+  }, [staff, profile, canPickStaff]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleStaffCreated(created) {
     await loadStaff();
@@ -162,7 +193,7 @@ export default function TimeClock() {
     setLoading(true);
     try {
       const [entriesData, activeData] = await Promise.all([
-        fetchTimeEntries(selectedStaff, toDateStr(week.start), toDateStr(week.end)).catch(() => []),
+        fetchTimeEntries(selectedStaff, week.start.toISOString(), week.end.toISOString()).catch(() => []),
         fetchActiveClocks(selectedStaff).catch(() => []),
       ]);
       if (isStale?.()) return;
@@ -186,7 +217,7 @@ export default function TimeClock() {
   const loadAllSummary = useCallback(async (isStale) => {
     setAllLoading(true);
     try {
-      const data = await fetchAllStaffSummary(toDateStr(week.start), toDateStr(week.end));
+      const data = await fetchAllStaffSummary(week.start.toISOString(), week.end.toISOString());
       if (isStale?.()) return;
       setAllSummary(data);
     } catch (err) {
@@ -288,18 +319,36 @@ export default function TimeClock() {
   }
 
   async function handleEditSave() {
-    if (!editModal) return;
+    if (!editModal || editSaving) return;
+    // Inputs hold local wall-clock (datetime-local); convert to instants before saving
+    const inDate = editModal.clock_in ? new Date(editModal.clock_in) : null;
+    const outDate = editModal.clock_out ? new Date(editModal.clock_out) : null;
+    if (!inDate || Number.isNaN(inDate.getTime())) {
+      setEditModal({ ...editModal, error: 'Clock in time is required.' });
+      return;
+    }
+    if (outDate && Number.isNaN(outDate.getTime())) {
+      setEditModal({ ...editModal, error: 'Clock out time is not valid.' });
+      return;
+    }
+    if (outDate && outDate <= inDate) {
+      setEditModal({ ...editModal, error: 'Clock out must be after clock in.' });
+      return;
+    }
+    setEditSaving(true);
     try {
       await updateTimeEntry(editModal.id, {
-        clock_in: editModal.clock_in,
-        clock_out: editModal.clock_out || undefined,
+        clock_in: inDate.toISOString(),
+        clock_out: outDate ? outDate.toISOString() : undefined,
         break_minutes: editModal.break_minutes || 0,
         notes: editModal.notes || undefined,
       });
       setEditModal(null);
       loadEntries();
     } catch (err) {
-      alert(err.message);
+      setEditModal((m) => (m ? { ...m, error: err.message } : m));
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -320,7 +369,8 @@ export default function TimeClock() {
       groupedMap[dateKey].entries.push(e);
       if (e.clock_out) {
         completed += 1;
-        const ms = new Date(e.clock_out) - new Date(e.clock_in) - (e.break_minutes || 0) * 60000;
+        // Clamp so a bad entry (clock_out before clock_in) can't shrink the totals
+        const ms = Math.max(0, new Date(e.clock_out) - new Date(e.clock_in) - (e.break_minutes || 0) * 60000);
         groupedMap[dateKey].totalMs += ms;
         total += ms;
       }
@@ -511,7 +561,9 @@ export default function TimeClock() {
                   <select
                     value={selectedStaff}
                     onChange={(e) => setSelectedStaff(e.target.value)}
-                    className="min-w-0 flex-1"
+                    disabled={!canPickStaff}
+                    title={canPickStaff ? undefined : 'Only managers can clock in for other staff'}
+                    className="min-w-0 flex-1 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {staff.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -788,8 +840,30 @@ export default function TimeClock() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-white">
                                 <span>{formatTime(entry.clock_in)}</span>
+                                {entry.clock_in_lat && (
+                                  <a
+                                    href={`https://www.google.com/maps?q=${entry.clock_in_lat},${entry.clock_in_lng}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-accent-500 hover:text-accent-600 transition-colors"
+                                    title={`Clock-in: ${Number(entry.clock_in_lat).toFixed(5)}, ${Number(entry.clock_in_lng).toFixed(5)}`}
+                                  >
+                                    <HiMapPin className="h-3.5 w-3.5" />
+                                  </a>
+                                )}
                                 <span className="text-slate-400">&rarr;</span>
                                 <span>{entry.clock_out ? formatTime(entry.clock_out) : 'In progress'}</span>
+                                {entry.clock_out_lat && (
+                                  <a
+                                    href={`https://www.google.com/maps?q=${entry.clock_out_lat},${entry.clock_out_lng}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-red-500 hover:text-red-600 transition-colors"
+                                    title={`Clock-out: ${Number(entry.clock_out_lat).toFixed(5)}, ${Number(entry.clock_out_lng).toFixed(5)}`}
+                                  >
+                                    <HiMapPin className="h-3.5 w-3.5" />
+                                  </a>
+                                )}
                               </div>
                               {entry.notes && (
                                 <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
@@ -814,8 +888,8 @@ export default function TimeClock() {
                                 onClick={() =>
                                   setEditModal({
                                     id: entry.id,
-                                    clock_in: entry.clock_in?.slice(0, 16),
-                                    clock_out: entry.clock_out?.slice(0, 16) || '',
+                                    clock_in: entry.clock_in ? toLocalDatetime(new Date(entry.clock_in)) : '',
+                                    clock_out: entry.clock_out ? toLocalDatetime(new Date(entry.clock_out)) : '',
                                     break_minutes: entry.break_minutes || 0,
                                     notes: entry.notes || '',
                                   })
@@ -1027,7 +1101,7 @@ export default function TimeClock() {
                   <input
                     type="datetime-local"
                     value={editModal.clock_in}
-                    onChange={(e) => setEditModal({ ...editModal, clock_in: e.target.value })}
+                    onChange={(e) => setEditModal({ ...editModal, clock_in: e.target.value, error: null })}
                   />
                 </div>
                 <div>
@@ -1037,9 +1111,14 @@ export default function TimeClock() {
                   <input
                     type="datetime-local"
                     value={editModal.clock_out}
-                    onChange={(e) => setEditModal({ ...editModal, clock_out: e.target.value })}
+                    onChange={(e) => setEditModal({ ...editModal, clock_out: e.target.value, error: null })}
                   />
                 </div>
+                {editModal.error && (
+                  <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                    {editModal.error}
+                  </p>
+                )}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Break (minutes)
@@ -1067,7 +1146,9 @@ export default function TimeClock() {
             </ModalBody>
             <ModalFooter>
               <ButtonSecondary onClick={() => setEditModal(null)}>Cancel</ButtonSecondary>
-              <ButtonPrimary onClick={handleEditSave}>Save Changes</ButtonPrimary>
+              <ButtonPrimary onClick={handleEditSave} disabled={editSaving}>
+                {editSaving ? 'Saving…' : 'Save Changes'}
+              </ButtonPrimary>
             </ModalFooter>
           </>
         )}

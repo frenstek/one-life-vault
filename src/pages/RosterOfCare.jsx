@@ -10,6 +10,7 @@ import {
   fetchParticipants,
 } from '../lib/api';
 import Modal, { ModalBody, ModalFooter, ButtonPrimary, ButtonSecondary, ModalError } from '../components/ui/Modal';
+import { toLocalDate } from '../lib/dates';
 import { PageHeader, Badge, EmptyState, FormInput, FormSelect, FormTextarea, FormRow, StatCard } from '../components/ui/FormComponents';
 import {
   HiOutlineClipboardDocumentList,
@@ -287,7 +288,7 @@ function CreateROCModal({ properties, onSave, onClose }) {
   const [form, setForm] = useState({
     name: '',
     property_id: '',
-    effective_from: new Date().toISOString().split('T')[0],
+    effective_from: toLocalDate(),
     effective_to: '',
     notes: '',
   });

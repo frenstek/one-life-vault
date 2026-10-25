@@ -6,16 +6,18 @@ import { createParticipant, updateParticipant } from '../lib/api';
 const EMPTY = {
   first_name: '', last_name: '', preferred_name: '', date_of_birth: '', ndis_number: '',
   phone: '', email: '', location: '', state: '', bio: '',
+  start_date_with_olf: '',
   plan_start_date: '', plan_end_date: '', funding_type: '', funding_ratio: '', support_level: '',
   primary_disability: '', secondary_disability: '',
   communication_needs: '', mobility: '', dietary_requirements: '', allergies: '',
   medications_summary: '', medicare_number: '', cultural_considerations: '',
   emergency_contact_name: '', emergency_contact_phone: '', emergency_contact_relationship: '',
   gp_name: '', gp_phone: '', gp_clinic: '',
-  bsp_name: '', bsp_phone: '', bsp_organisation: '',
-  support_coordinator_name: '', support_coordinator_phone: '', support_coordinator_organisation: '',
+  pharmacy_name: '', pharmacy_phone: '', pharmacy_address: '',
+  bsp_name: '', bsp_phone: '', bsp_email: '', bsp_organisation: '',
+  support_coordinator_name: '', support_coordinator_phone: '', support_coordinator_email: '', support_coordinator_organisation: '',
   occupational_therapist: '', speech_pathologist: '', psychologist: '',
-  plan_manager_name: '', plan_manager_organisation: '',
+  plan_manager_name: '', plan_manager_email: '', plan_manager_organisation: '',
   assigned_staff: '', status: 'active',
 };
 
@@ -52,13 +54,22 @@ export default function ParticipantModal({ isOpen, onClose, onSaved, participant
       setError('First name and last name are required');
       return;
     }
+    if (isEdit && !participant?.id) {
+      setError('Unable to save — participant data not loaded');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
+      // Clean form data — convert empty strings to null for optional fields
+      const cleanData = {};
+      for (const [key, val] of Object.entries(form)) {
+        cleanData[key] = typeof val === 'string' && val.trim() === '' ? null : val;
+      }
       if (isEdit) {
-        await updateParticipant(participant.id, form);
+        await updateParticipant(participant.id, cleanData);
       } else {
-        await createParticipant(form);
+        await createParticipant(cleanData);
       }
       onSaved();
     } catch (err) {
@@ -107,6 +118,10 @@ export default function ParticipantModal({ isOpen, onClose, onSaved, participant
                 <div>
                   <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Medicare Number</label>
                   <input type="text" value={form.medicare_number} onChange={e => set('medicare_number', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white font-mono" />
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Start Date with OLF</label>
+                  <input type="date" value={form.start_date_with_olf} onChange={e => set('start_date_with_olf', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
                 </div>
               </div>
             </fieldset>
@@ -250,6 +265,10 @@ export default function ParticipantModal({ isOpen, onClose, onSaved, participant
                   <input type="tel" value={form.bsp_phone} onChange={e => set('bsp_phone', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
                 </div>
                 <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
+                  <input type="email" value={form.bsp_email} onChange={e => set('bsp_email', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
+                </div>
+                <div>
                   <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Organisation</label>
                   <input type="text" value={form.bsp_organisation} onChange={e => set('bsp_organisation', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
                 </div>
@@ -264,6 +283,10 @@ export default function ParticipantModal({ isOpen, onClose, onSaved, participant
                   <input type="tel" value={form.support_coordinator_phone} onChange={e => set('support_coordinator_phone', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
                 </div>
                 <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
+                  <input type="email" value={form.support_coordinator_email} onChange={e => set('support_coordinator_email', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
+                </div>
+                <div>
                   <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Organisation</label>
                   <input type="text" value={form.support_coordinator_organisation} onChange={e => set('support_coordinator_organisation', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
                 </div>
@@ -274,10 +297,13 @@ export default function ParticipantModal({ isOpen, onClose, onSaved, participant
                   <input type="text" value={form.plan_manager_name} onChange={e => set('plan_manager_name', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
                 </div>
                 <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
+                  <input type="email" value={form.plan_manager_email} onChange={e => set('plan_manager_email', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
+                </div>
+                <div>
                   <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Organisation</label>
                   <input type="text" value={form.plan_manager_organisation} onChange={e => set('plan_manager_organisation', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
                 </div>
-                <div />
 
                 <div className="col-span-3 mt-2 text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">Allied Health</div>
                 <div>
@@ -334,6 +360,24 @@ export default function ParticipantModal({ isOpen, onClose, onSaved, participant
                 <div>
                   <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">GP Clinic</label>
                   <input type="text" value={form.gp_clinic} onChange={e => set('gp_clinic', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Pharmacy</legend>
+              <div className="grid grid-cols-3 gap-6">
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Pharmacy Name</label>
+                  <input type="text" value={form.pharmacy_name} onChange={e => set('pharmacy_name', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Pharmacy Phone</label>
+                  <input type="tel" value={form.pharmacy_phone} onChange={e => set('pharmacy_phone', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Pharmacy Address</label>
+                  <input type="text" value={form.pharmacy_address} onChange={e => set('pharmacy_address', e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#1e2d4a] text-slate-900 dark:text-white" />
                 </div>
               </div>
             </fieldset>

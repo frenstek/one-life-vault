@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One Life Foundation — Medication Purpose Form</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --olf-blue: #309edd;
+      --olf-blue-dark: #1a7ab8;
+      --olf-green: #0ea03e;
+      --text-primary: #1a1a2e;
+      --text-secondary: #4a4a5a;
+      --border: #d0d5dd;
+    }
+
+    @page {
+      size: A4;
+      margin: 20mm 18mm;
+    }
+
+    @media print {
+      body { font-size: 10pt; padding: 0; }
+      .page-break { page-break-before: always; }
+      .no-print { display: none !important; }
+      h2 { page-break-after: avoid; }
+      table { page-break-inside: avoid; }
+      .signature-block { page-break-inside: avoid; }
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 11pt;
+      line-height: 1.65;
+      color: var(--text-primary);
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 40px;
+      background: #fff;
+    }
+
+    /* Header */
+    .doc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 3px solid var(--olf-blue);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+    }
+
+    .doc-header img {
+      height: 80px;
+      width: auto;
+    }
+
+    .doc-header-right {
+      text-align: right;
+    }
+
+    .doc-header-right .company-name {
+      font-size: 18pt;
+      font-weight: 700;
+      color: var(--olf-blue-dark);
+    }
+
+    .doc-header-right .company-details {
+      font-size: 8.5pt;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    /* Title */
+    .doc-title {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .doc-title h1 {
+      font-size: 16pt;
+      font-weight: 700;
+      color: var(--olf-blue-dark);
+      margin-bottom: 4px;
+    }
+
+    .doc-title .subtitle {
+      font-size: 9pt;
+      color: var(--text-secondary);
+    }
+
+    /* Section headings */
+    h2 {
+      font-size: 12pt;
+      font-weight: 700;
+      color: var(--olf-blue-dark);
+      margin: 24px 0 10px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid var(--olf-blue);
+    }
+
+    p {
+      margin-bottom: 10px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 10pt;
+    }
+
+    table th, table td {
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    table th {
+      background: var(--olf-blue);
+      color: #fff;
+      font-weight: 600;
+      font-size: 9pt;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    table td.label {
+      background: #f5f7fa;
+      font-weight: 600;
+      width: 200px;
+      white-space: nowrap;
+    }
+
+    table td.value {
+      min-height: 28px;
+    }
+
+    /* Fillable field */
+    .field {
+      border-bottom: 1px dotted #bbb;
+      display: inline-block;
+      min-width: 180px;
+      min-height: 18px;
+      vertical-align: bottom;
+    }
+
+    .field.short { min-width: 100px; }
+    .field.long { min-width: 300px; }
+    .field.full { width: 100%; display: block; min-height: 24px; margin-top: 4px; }
+
+    /* Checkbox */
+    .checkbox-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin: 6px 0 10px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10pt;
+    }
+
+    .checkbox-item .box {
+      width: 14px;
+      height: 14px;
+      border: 1.5px solid #999;
+      border-radius: 2px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    /* Medication table */
+    .med-table td {
+      height: 36px;
+    }
+
+    .med-table td.narrow {
+      width: 80px;
+      text-align: center;
+    }
+
+    /* Info box */
+    .info-box {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin: 12px 0 16px;
+      font-size: 9.5pt;
+      color: #1E40AF;
+      line-height: 1.6;
+    }
+
+    /* Signature block */
+    .signature-block {
+      margin-top: 30px;
+    }
+
+    .sig-row {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 20px;
+    }
+
+    .sig-field {
+      flex: 1;
+    }
+
+    .sig-field .sig-label {
+      font-size: 9pt;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .sig-line {
+      border-bottom: 1px solid #999;
+      height: 32px;
+    }
+
+    /* Footer */
+    .doc-footer {
+      margin-top: 40px;
+      padding-top: 12px;
+      border-top: 2px solid var(--olf-blue);
+      font-size: 8pt;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .doc-footer .version {
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="doc-header">
+    <img src="public/logo.png" alt="One Life Foundation Logo">
+    <div class="doc-header-right">
+      <div class="company-name">One Life Foundation</div>
+      <div class="company-details">
+        NDIS Registered Provider<br>
+        ABN: 31 672 507 547
+      </div>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <div class="doc-title">
+    <h1>Medication Purpose Form</h1>
+    <div class="subtitle">To be completed for each participant requiring medication support</div>
+  </div>
+
+  <!-- Section 1: Participant Details -->
+  <h2>1. Participant Details</h2>
+  <table>
+    <tr>
+      <td class="label">Participant Name</td>
+      <td class="value"></td>
+      <td class="label">Date of Birth</td>
+      <td class="value"></td>
+    </tr>
+    <tr>
+      <td class="label">NDIS Number</td>
+      <td class="value"></td>
+      <td class="label">Phone</td>
+      <td class="value"></td>
+    </tr>
+    <tr>
+      <td class="label">Address</td>
+      <td class="value" colspan="3"></td>
+    </tr>
+    <tr>
+      <td class="label">GP / Prescribing Doctor</td>
+      <td class="value"></td>
+      <td class="label">GP Phone</td>
+      <td class="value"></td>
+    </tr>
+    <tr>
+      <td class="label">Pharmacy</td>
+      <td class="value"></td>
+      <td class="label">Pharmacy Phone</td>
+      <td class="value"></td>
+    </tr>
+  </table>
+
+  <!-- Section 2: Medication Details -->
+  <h2>2. Medication Details</h2>
+  <table class="med-table">
+    <thead>
+      <tr>
+        <th>Medication Name</th>
+        <th>Purpose / Reason</th>
+        <th>Dosage</th>
+        <th>Route</th>
+        <th>Frequency / Time</th>
+        <th>Prescriber</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+
+  <!-- Section 3: Allergies & Adverse Reactions -->
+  <h2>3. Known Allergies & Adverse Reactions</h2>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> No Known Allergies (NKA)</div>
+    <div class="checkbox-item"><span class="box"></span> Allergies listed below</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Allergy / Substance</th>
+        <th>Reaction</th>
+        <th>Severity</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+
+  <!-- Section 4: Administration Support -->
+  <h2>4. Level of Support Required</h2>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> Self-administers (no support required)</div>
+    <div class="checkbox-item"><span class="box"></span> Verbal prompt / reminder only</div>
+  </div>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> Physical assistance to open packaging</div>
+    <div class="checkbox-item"><span class="box"></span> Staff administers medication</div>
+  </div>
+
+  <div class="info-box">
+    <strong>Note:</strong> Support workers must only administer medications from a Webster pack or as directed by a registered health professional.
+    All medication administration must be documented in the participant's progress notes and medication chart.
+  </div>
+
+  <!-- Section 5: Storage -->
+  <h2>5. Storage Requirements</h2>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> Room temperature</div>
+    <div class="checkbox-item"><span class="box"></span> Refrigerated (2–8°C)</div>
+    <div class="checkbox-item"><span class="box"></span> Locked storage required</div>
+    <div class="checkbox-item"><span class="box"></span> Other</div>
+  </div>
+  <p style="font-size: 10pt;">Additional storage notes: <span class="field long"></span></p>
+
+  <!-- Section 6: Special Instructions -->
+  <h2>6. Special Instructions</h2>
+  <table>
+    <tr>
+      <td class="label">Take with food?</td>
+      <td class="value">
+        <div class="checkbox-row" style="margin: 0;">
+          <div class="checkbox-item"><span class="box"></span> Yes</div>
+          <div class="checkbox-item"><span class="box"></span> No</div>
+          <div class="checkbox-item"><span class="box"></span> N/A</div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="label">Crush / dissolve allowed?</td>
+      <td class="value">
+        <div class="checkbox-row" style="margin: 0;">
+          <div class="checkbox-item"><span class="box"></span> Yes</div>
+          <div class="checkbox-item"><span class="box"></span> No</div>
+          <div class="checkbox-item"><span class="box"></span> N/A</div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="label">PRN (as needed) medications</td>
+      <td class="value">
+        <div class="checkbox-row" style="margin: 0;">
+          <div class="checkbox-item"><span class="box"></span> Yes — see details above</div>
+          <div class="checkbox-item"><span class="box"></span> No</div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="label">Other instructions</td>
+      <td class="value" style="min-height: 48px;"></td>
+    </tr>
+  </table>
+
+  <!-- Section 7: Authorisation -->
+  <h2>7. Authorisation</h2>
+  <p style="font-size: 10pt;">
+    I confirm that the information provided in this form is accurate and current. I authorise One Life Foundation support workers
+    to assist with the administration of the medications listed above in accordance with the prescribed directions.
+  </p>
+
+  <div class="signature-block">
+    <div class="sig-row">
+      <div class="sig-field">
+        <div class="sig-label">Participant / Guardian Name</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Signature</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Date</div>
+        <div class="sig-line"></div>
+      </div>
+    </div>
+    <div class="sig-row">
+      <div class="sig-field">
+        <div class="sig-label">GP / Prescribing Doctor Name</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Signature</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Date</div>
+        <div class="sig-line"></div>
+      </div>
+    </div>
+    <div class="sig-row">
+      <div class="sig-field">
+        <div class="sig-label">OLF Staff / Coordinator Name</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Signature</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Date</div>
+        <div class="sig-line"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <span>One Life Foundation | Medication Purpose Form</span>
+    <span class="version">Version 1.0 — May 2026</span>
+  </div>
+
+</body>
+</html>

@@ -9,6 +9,7 @@ import {
   HiPencilSquare,
   HiEye,
   HiTrash,
+  HiArrowDownTray,
 } from 'react-icons/hi2';
 import {
   fetchIncidents,
@@ -19,6 +20,9 @@ import {
   fetchParticipants,
   fetchProperties,
 } from '../lib/api';
+import { downloadIncidentPDF } from '../components/IncidentReportPDF';
+import { exportRegisterPdf } from '../lib/registerPdfExport';
+import { toLocalDate } from '../lib/dates';
 import {
   PageHeader,
   StatCard,
@@ -69,11 +73,12 @@ const STATUS_BADGE = {
   closed: 'default',
 };
 
-const INITIAL_FORM = {
+// Function so the default date is computed when the form opens, not at module load.
+const INITIAL_FORM = () => ({
   title: '',
   severity: 'medium',
   category: 'injury',
-  incident_date: new Date().toISOString().split('T')[0],
+  incident_date: toLocalDate(),
   incident_time: '',
   location: '',
   participant_id: '',
@@ -85,7 +90,7 @@ const INITIAL_FORM = {
   follow_up_actions: '',
   follow_up_date: '',
   reported_by: '',
-};
+});
 
 function formatDate(d) {
   if (!d) return '--';
@@ -127,7 +132,7 @@ export default function Incidents() {
   const [isEditing, setIsEditing] = useState(false);
 
   // Form
-  const [form, setForm] = useState(INITIAL_FORM);
+  const [form, setForm] = useState(INITIAL_FORM);  // lazy initializer
   const [formError, setFormError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -142,6 +147,9 @@ export default function Incidents() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Success toast
+  const [successMsg, setSuccessMsg] = useState(null);
+
   function loadData() {
     setLoading(true);
     setError(null);
@@ -151,7 +159,7 @@ export default function Incidents() {
       fetchIncidents(status, severity),
       fetchIncidentStats(),
       fetchParticipants(),
-      fetchProperties(),
+      fetchProperties('active'),
     ])
       .then(([incidentData, statsData, participantData, propertyData]) => {
         setIncidents(Array.isArray(incidentData) ? incidentData : incidentData.incidents || []);
@@ -216,7 +224,7 @@ export default function Incidents() {
       setIsEditing(true);
       setSelectedIncident(incident);
     } else {
-      setForm(INITIAL_FORM);
+      setForm(INITIAL_FORM());
       setIsEditing(false);
       setSelectedIncident(null);
     }
@@ -226,7 +234,7 @@ export default function Incidents() {
 
   function closeReportModal() {
     setReportModalOpen(false);
-    setForm(INITIAL_FORM);
+    setForm(INITIAL_FORM());
     setFormError(null);
     setIsEditing(false);
     setSelectedIncident(null);
@@ -253,11 +261,14 @@ export default function Incidents() {
 
       if (isEditing && selectedIncident) {
         await updateIncident(selectedIncident.id, payload);
+        setSuccessMsg('Incident updated successfully');
       } else {
         await createIncident(payload);
+        setSuccessMsg('Incident reported successfully');
       }
       closeReportModal();
       loadData();
+      setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       setFormError(err.message);
     } finally {
@@ -296,8 +307,10 @@ export default function Incidents() {
         payload.resolved_at = new Date().toISOString();
       }
       await updateIncident(selectedIncident.id, payload);
+      setSuccessMsg(`Status updated to "${editStatus}"`);
       closeViewModal();
       loadData();
+      setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       setViewError(err.message);
     } finally {
@@ -337,18 +350,51 @@ export default function Incidents() {
 
   return (
     <div className="space-y-8">
+      {/* Success toast */}
+      {successMsg && (
+        <div className="fixed top-20 right-6 z-[60] flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-lg animate-[slideIn_0.3s_ease-out]">
+          <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" /></svg>
+          {successMsg}
+        </div>
+      )}
+
       {/* Header */}
       <PageHeader
         title="Incident Register"
         subtitle="NDIS incident reporting and tracking"
         actions={
-          <button
-            onClick={() => openReportModal()}
-            className="flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-600"
-          >
-            <HiPlus className="h-4 w-4" />
-            Report Incident
-          </button>
+          <>
+            <button
+              onClick={() => exportRegisterPdf({
+                title: 'Incident Register',
+                columns: ['#', 'Date', 'Title', 'Description', 'Severity', 'Category', 'Immediate Actions', 'Follow-up Actions', 'Status'],
+                rows: filtered.map((inc) => [
+                  inc.incident_number || '',
+                  inc.incident_date ? new Date(inc.incident_date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
+                  inc.title || '',
+                  inc.description || '',
+                  (inc.severity || '').charAt(0).toUpperCase() + (inc.severity || '').slice(1),
+                  CATEGORY_LABELS[inc.category] || inc.category || '',
+                  inc.immediate_actions || '',
+                  inc.follow_up_actions || '',
+                  (inc.status || '').charAt(0).toUpperCase() + (inc.status || '').slice(1),
+                ]),
+                orientation: 'landscape',
+                filename: 'OLF-Incident-Register.pdf',
+              })}
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <HiArrowDownTray className="h-4 w-4" />
+              Export PDF
+            </button>
+            <button
+              onClick={() => openReportModal()}
+              className="flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-600"
+            >
+              <HiPlus className="h-4 w-4" />
+              Report Incident
+            </button>
+          </>
         }
       />
 
@@ -547,6 +593,13 @@ export default function Incidents() {
                           title="View"
                         >
                           <HiEye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => downloadIncidentPDF(inc, inc.participant_name || getParticipantName(inc.participant_id), getPropertyName(inc.property_id))}
+                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600"
+                          title="Download PDF Report"
+                        >
+                          <HiArrowDownTray className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => openReportModal(inc)}
@@ -925,6 +978,13 @@ export default function Incidents() {
               <ButtonSecondary onClick={closeViewModal} disabled={updating}>
                 Close
               </ButtonSecondary>
+              <button
+                onClick={() => downloadIncidentPDF(selectedIncident, selectedIncident.participant_name || getParticipantName(selectedIncident.participant_id), getPropertyName(selectedIncident.property_id))}
+                className="flex items-center gap-2 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 px-4 py-2.5 text-sm font-semibold text-green-700 dark:text-green-400 transition-colors hover:bg-green-100 dark:hover:bg-green-900/30"
+              >
+                <HiArrowDownTray className="h-4 w-4" />
+                Download PDF
+              </button>
               <ButtonPrimary onClick={handleUpdateStatus} loading={updating}>
                 {updating ? 'Updating...' : 'Update Status'}
               </ButtonPrimary>

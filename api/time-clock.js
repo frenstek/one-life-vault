@@ -4,6 +4,17 @@ import { setCors, handleOptions } from './_lib/cors.js';
 const SUMMARY_MAX_DAYS = 31;
 const SUMMARY_ENTRY_LIMIT = 10000;
 
+// Range filters accept either a full ISO instant (preferred — the client sends
+// its local week start/end as UTC) or a date-only YYYY-MM-DD, which is anchored
+// to the start/end of that day in Brisbane time instead of UTC.
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+function rangeStart(v) {
+  return DATE_ONLY.test(v) ? `${v}T00:00:00+10:00` : v;
+}
+function rangeEnd(v) {
+  return DATE_ONLY.test(v) ? `${v}T23:59:59.999+10:00` : v;
+}
+
 async function getOpenEntry(staffId, fields = 'id') {
   const { data, error } = await supabase
     .from('time_entries')
@@ -34,8 +45,8 @@ export default async function handler(req, res) {
         }
 
         // Guard against unbounded ranges — endpoint is for weekly summaries.
-        const startMs = Date.parse(start_date);
-        const endMs = Date.parse(end_date);
+        const startMs = Date.parse(rangeStart(start_date));
+        const endMs = Date.parse(rangeEnd(end_date));
         if (Number.isNaN(startMs) || Number.isNaN(endMs)) {
           return res.status(400).json({ error: 'Invalid start_date or end_date' });
         }
@@ -56,8 +67,8 @@ export default async function handler(req, res) {
           supabase
             .from('time_entries')
             .select('staff_id, clock_in, clock_out, break_minutes, break_start')
-            .gte('clock_in', start_date)
-            .lte('clock_in', end_date + 'T23:59:59.999Z')
+            .gte('clock_in', rangeStart(start_date))
+            .lte('clock_in', rangeEnd(end_date))
             .limit(SUMMARY_ENTRY_LIMIT),
         ]);
         if (staffResult.error) throw staffResult.error;
@@ -109,6 +120,27 @@ export default async function handler(req, res) {
         return res.json(summary);
       }
 
+      // Location log — all entries with GPS data for admin monitoring
+      // Dates are in AEST (UTC+10), so offset the query range
+      if (action === 'location-log') {
+        if (!start_date || !end_date) {
+          return res.status(400).json({ error: 'start_date and end_date required' });
+        }
+        const rangeStart = start_date + 'T00:00:00+10:00';
+        const rangeEnd = end_date + 'T23:59:59.999+10:00';
+        let q = supabase
+          .from('time_entries')
+          .select('id, staff_id, clock_in, clock_out, clock_in_lat, clock_in_lng, clock_in_accuracy, clock_out_lat, clock_out_lng, clock_out_accuracy, notes, staff:staff_id(id, first_name, last_name)')
+          .gte('clock_in', rangeStart)
+          .lte('clock_in', rangeEnd)
+          .order('clock_in', { ascending: false })
+          .limit(500);
+        if (staff_id) q = q.eq('staff_id', staff_id);
+        const { data, error } = await q;
+        if (error) throw error;
+        return res.json(data);
+      }
+
       // Currently clocked-in entries
       if (action === 'active') {
         const { data, error } = await supabase
@@ -154,8 +186,8 @@ export default async function handler(req, res) {
         .order('clock_in', { ascending: false });
 
       if (staff_id) query = query.eq('staff_id', staff_id);
-      if (start_date) query = query.gte('clock_in', start_date);
-      if (end_date) query = query.lte('clock_in', end_date + 'T23:59:59.999Z');
+      if (start_date) query = query.gte('clock_in', rangeStart(start_date));
+      if (end_date) query = query.lte('clock_in', rangeEnd(end_date));
 
       const { data, error } = await query.limit(200);
       if (error) throw error;
@@ -174,9 +206,17 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Already clocked in. Clock out first.' });
         }
 
+        const { clock_in_lat, clock_in_lng, clock_in_accuracy } = req.body;
+        const insertData = { staff_id, notes };
+        if (clock_in_lat != null && clock_in_lng != null) {
+          insertData.clock_in_lat = clock_in_lat;
+          insertData.clock_in_lng = clock_in_lng;
+          if (clock_in_accuracy != null) insertData.clock_in_accuracy = clock_in_accuracy;
+        }
+
         const { data, error } = await supabase
           .from('time_entries')
-          .insert({ staff_id, notes })
+          .insert(insertData)
           .select('*, staff:staff_id(id, first_name, last_name)')
           .single();
 
@@ -205,15 +245,23 @@ export default async function handler(req, res) {
           combinedNotes = combinedNotes ? `${combinedNotes} | ${notes}` : notes;
         }
 
+        const { clock_out_lat, clock_out_lng, clock_out_accuracy } = req.body;
+        const clockOutUpdate = {
+          clock_out: new Date().toISOString(),
+          notes: combinedNotes,
+          break_minutes: breakMinutes,
+          break_start: null,
+          updated_at: new Date().toISOString(),
+        };
+        if (clock_out_lat != null && clock_out_lng != null) {
+          clockOutUpdate.clock_out_lat = clock_out_lat;
+          clockOutUpdate.clock_out_lng = clock_out_lng;
+          if (clock_out_accuracy != null) clockOutUpdate.clock_out_accuracy = clock_out_accuracy;
+        }
+
         const { data, error } = await supabase
           .from('time_entries')
-          .update({
-            clock_out: new Date().toISOString(),
-            notes: combinedNotes,
-            break_minutes: breakMinutes,
-            break_start: null,
-            updated_at: new Date().toISOString(),
-          })
+          .update(clockOutUpdate)
           .eq('id', entry.id)
           .select('*, staff:staff_id(id, first_name, last_name)')
           .single();

@@ -13,6 +13,7 @@ import {
   HiDocumentText,
 } from 'react-icons/hi2';
 import { fetchCompliance, fetchProperties, fetchParticipants } from '../lib/api';
+import { toLocalDate } from '../lib/dates';
 import { SkeletonDashboard } from '../components/ui/Skeleton';
 
 const EXPIRY_TIERS = [
@@ -26,9 +27,10 @@ const EXPIRY_TIERS = [
 
 function getDaysUntilExpiry(expiryDate) {
   if (!expiryDate) return Infinity;
-  const now = new Date();
-  const expiry = new Date(expiryDate);
-  return Math.ceil((expiry - now) / 86400000);
+  // Whole calendar days in local time (expires today = 0, yesterday = -1)
+  const today = new Date(toLocalDate() + 'T00:00:00');
+  const expiry = new Date(String(expiryDate).slice(0, 10) + 'T00:00:00');
+  return Math.round((expiry - today) / 86400000);
 }
 
 function getExpiryTier(days) {
@@ -59,6 +61,22 @@ export default function Compliance() {
         setData(compData);
         setProperties(Array.isArray(propData) ? propData : propData?.properties || []);
         setParticipants(Array.isArray(partData) ? partData : partData?.participants || []);
+        // Log compliance review to audit trail
+        fetch('/api/audit-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'compliance_review',
+            resource_type: 'compliance',
+            resource_name: 'Compliance Dashboard',
+            details: {
+              total_staff: compData.total_staff,
+              fully_compliant: compData.fully_compliant,
+              non_compliant: compData.non_compliant,
+              staff_with_gaps: compData.staff_gaps?.length || 0,
+            },
+          }),
+        }).catch(() => {}); // fire and forget
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -67,7 +85,9 @@ export default function Compliance() {
   // Enhanced expiry grouping with tiered warnings
   const expiryGroups = useMemo(() => {
     if (!data) return {};
-    const all = [...(data.expiring_soon || []), ...(data.expired || [])];
+    const expDocs = data.expiring_documents || [];
+    const expiredDocs = data.expired_documents || [];
+    const all = [...expDocs, ...expiredDocs];
     const groups = {};
     all.forEach(item => {
       const days = getDaysUntilExpiry(item.expiry_date);
@@ -83,13 +103,13 @@ export default function Compliance() {
   // Audit readiness score
   const auditScore = useMemo(() => {
     if (!data) return { score: 0, breakdown: [] };
-    const stats = data.stats || {};
-    const totalStaff = stats.total_staff || 0;
+    const totalStaff = data.total_staff || 0;
     if (!totalStaff) return { score: 100, breakdown: [] };
 
-    const compliant = stats.fully_compliant || 0;
-    const expiring = stats.expiring || 0;
-    const expired = (data.expired || []).length;
+    const compliant = data.fully_compliant || 0;
+    const expiring = (data.expiring_documents || []).length;
+    const expired = (data.expired_documents || []).length;
+    const docTypeCount = data.document_type_rates ? Object.keys(data.document_type_rates).length : 0;
 
     // Score calculation: 100 base, -2 per expiring, -5 per expired, weighted by compliance rate
     const complianceRate = compliant / totalStaff;
@@ -100,7 +120,7 @@ export default function Compliance() {
       { label: 'Staff compliance rate', value: `${Math.round(complianceRate * 100)}%`, good: complianceRate >= 0.8 },
       { label: 'Documents expiring soon', value: expiring, good: expiring === 0 },
       { label: 'Documents expired', value: expired, good: expired === 0 },
-      { label: 'Document types tracked', value: (data.by_document_type || []).length, good: true },
+      { label: 'Document types tracked', value: docTypeCount, good: true },
     ];
 
     return { score: raw, breakdown };
@@ -152,14 +172,14 @@ export default function Compliance() {
   }
   if (!data) return null;
 
-  const stats = data.stats || {};
-  const byDocType = data.by_document_type || [];
-  const expiringSoon = data.expiring_soon || [];
-  const expired = data.expired || [];
-  const totalStaff = stats.total_staff || 0;
-  const compliant = stats.fully_compliant || 0;
-  const expiringCount = stats.expiring || 0;
-  const nonCompliant = stats.non_compliant || 0;
+  const totalStaff = data.total_staff || 0;
+  const compliant = data.fully_compliant || 0;
+  const expiringCount = data.expiring_soon || 0;
+  const nonCompliant = data.non_compliant || 0;
+  const byDocType = data.document_type_rates
+    ? Object.entries(data.document_type_rates).map(([document_type, info]) => ({ document_type, count: info.valid + info.expiring, ...info }))
+    : [];
+  const staffGaps = data.staff_gaps || [];
   const staffScore = totalStaff > 0 ? Math.round((compliant / totalStaff) * 100) : 0;
 
   const fmtDate = (d) => {
@@ -366,6 +386,68 @@ export default function Compliance() {
               <p className="font-semibold text-slate-700 dark:text-slate-300">All Clear</p>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">No documents are expired or expiring within 90 days.</p>
             </div>
+          )}
+
+          {/* Missing Documents Report */}
+          {staffGaps.length > 0 && (
+            <section className="rounded-xl border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#162036] overflow-hidden">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#263554] px-8 py-5">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800 dark:text-slate-200">
+                  <HiXCircle className="h-5 w-5 text-red-500" />
+                  Missing Documents Report
+                  <span className="ml-2 rounded-full bg-red-50 dark:bg-red-900/20 px-2.5 py-0.5 text-xs font-bold text-red-600 dark:text-red-400">
+                    {staffGaps.length} staff
+                  </span>
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-[#263554] bg-slate-50 dark:bg-[#0f1a2e]">
+                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Staff Member</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Role</th>
+                      <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Progress</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Missing Documents</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-[#263554]/50">
+                    {staffGaps.map((gap) => (
+                      <tr key={gap.staff_id} className="hover:bg-slate-50 dark:hover:bg-[#1e2d4a] transition-colors">
+                        <td className="px-6 py-4">
+                          <Link to={`/staff/${gap.staff_id}`} className="font-medium text-[#309edd] hover:underline">
+                            {gap.staff_name}
+                          </Link>
+                        </td>
+                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{gap.role}</td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${
+                            gap.missing_count >= 10
+                              ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                              : gap.missing_count >= 5
+                              ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
+                              : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                          }`}>
+                            {gap.uploaded_count}/{gap.total_required}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1.5">
+                            {gap.missing_documents.map((doc) => (
+                              <span
+                                key={doc}
+                                className="inline-block rounded-md bg-red-50 dark:bg-red-900/15 border border-red-100 dark:border-red-800/30 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:text-red-300"
+                              >
+                                {doc}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
         </div>
       )}

@@ -50,7 +50,7 @@ async function handleList(req, res) {
 
   if (error) {
     console.error('Stakeholders list error:', error);
-    return res.status(500).json({ error: 'Failed to fetch stakeholders', details: error.message });
+    return res.status(500).json({ error: 'Failed to fetch stakeholders' });
   }
 
   res.status(200).json(data || []);
@@ -73,7 +73,7 @@ async function handleGet(req, res) {
     if (error.code === 'PGRST116') {
       return res.status(404).json({ error: 'Stakeholder not found' });
     }
-    return res.status(500).json({ error: 'Failed to fetch stakeholder', details: error.message });
+    return res.status(500).json({ error: 'Failed to fetch stakeholder' });
   }
 
   res.status(200).json(data);
@@ -111,7 +111,7 @@ async function handleCreate(req, res) {
 
   if (error) {
     console.error('Stakeholder create error:', error);
-    return res.status(500).json({ error: 'Failed to create stakeholder', details: error.message });
+    return res.status(500).json({ error: 'Failed to create stakeholder' });
   }
 
   await supabase.from('audit_log').insert({
@@ -160,7 +160,7 @@ async function handleUpdate(req, res) {
     if (error.code === 'PGRST116') {
       return res.status(404).json({ error: 'Stakeholder not found' });
     }
-    return res.status(500).json({ error: 'Failed to update stakeholder', details: error.message });
+    return res.status(500).json({ error: 'Failed to update stakeholder' });
   }
 
   await supabase.from('audit_log').insert({
@@ -194,7 +194,7 @@ async function handleDelete(req, res) {
     if (fetchError.code === 'PGRST116') {
       return res.status(404).json({ error: 'Stakeholder not found' });
     }
-    return res.status(500).json({ error: 'Failed to fetch stakeholder', details: fetchError.message });
+    return res.status(500).json({ error: 'Failed to fetch stakeholder' });
   }
 
   const { error: deleteError } = await supabase
@@ -203,7 +203,7 @@ async function handleDelete(req, res) {
     .eq('id', id);
 
   if (deleteError) {
-    return res.status(500).json({ error: 'Failed to delete stakeholder', details: deleteError.message });
+    return res.status(500).json({ error: 'Failed to delete stakeholder' });
   }
 
   await supabase.from('audit_log').insert({
@@ -247,6 +247,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Stakeholders handler error:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

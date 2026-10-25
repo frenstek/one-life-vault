@@ -9,6 +9,7 @@ import {
   HiTrash,
   HiCheckCircle,
   HiExclamationTriangle,
+  HiArrowDownTray,
 } from 'react-icons/hi2';
 import {
   fetchCIRegister,
@@ -37,6 +38,8 @@ import Modal, {
   ModalError,
 } from '../components/ui/Modal';
 import { SkeletonGrid, SkeletonStatCard } from '../components/ui/Skeleton';
+import { exportRegisterPdf } from '../lib/registerPdfExport';
+import { toLocalDate } from '../lib/dates';
 
 const SOURCE_LABELS = {
   audit: 'Audit',
@@ -90,7 +93,7 @@ const INITIAL_FORM = {
   category: 'operations',
   priority: 'medium',
   identified_by: '',
-  identified_date: new Date().toISOString().split('T')[0],
+  identified_date: toLocalDate(),
   action_plan: '',
   responsible_person: '',
   target_date: '',
@@ -287,13 +290,35 @@ export default function ContinuousImprovement() {
         title="Continuous Improvement"
         subtitle="Track and manage improvement initiatives"
         actions={
-          <button
-            onClick={() => openFormModal()}
-            className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-600"
-          >
-            <HiPlus className="h-4 w-4" />
-            New Improvement
-          </button>
+          <>
+            <button
+              onClick={() => exportRegisterPdf({
+                title: 'Continuous Improvement Register',
+                columns: ['Ref #', 'Title', 'Source', 'Category', 'Priority', 'Status', 'Target Date'],
+                rows: filtered.map((item) => [
+                  item.ci_number || item.ref_number || '',
+                  item.title || '',
+                  SOURCE_LABELS[item.source] || item.source || '',
+                  CATEGORY_LABELS[item.category] || item.category || '',
+                  getPriorityLabel(item.priority),
+                  getStatusLabel(item.status),
+                  item.target_date ? formatDate(item.target_date) : '',
+                ]),
+                filename: 'OLF-Continuous-Improvement-Register.pdf',
+              })}
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <HiArrowDownTray className="h-4 w-4" />
+              Export PDF
+            </button>
+            <button
+              onClick={() => openFormModal()}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-600"
+            >
+              <HiPlus className="h-4 w-4" />
+              New Improvement
+            </button>
+          </>
         }
       />
 

@@ -3,10 +3,12 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import UploadModal from './UploadModal';
+import ChatPanel from './ChatPanel';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8f9fb] dark:bg-[#0c1425]">
@@ -17,6 +19,8 @@ export default function Layout() {
         <Header
           onMenuToggle={() => setSidebarOpen((v) => !v)}
           onUpload={() => setUploadOpen(true)}
+          chatOpen={chatOpen}
+          onChatToggle={() => setChatOpen((v) => !v)}
         />
         <main className="flex-1 overflow-y-auto p-6 lg:p-10">
           <Outlet />
@@ -32,6 +36,9 @@ export default function Layout() {
           window.location.reload();
         }}
       />
+
+      {/* Floating team chat panel */}
+      <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
 }

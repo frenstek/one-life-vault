@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { HiClipboardDocumentCheck } from 'react-icons/hi2';
 import { addInspection } from '../lib/api';
 import Modal, { ModalBody, ModalFooter, ModalError, ButtonPrimary, ButtonSecondary } from './ui/Modal';
+import { toLocalDate } from '../lib/dates';
 
 const INSPECTION_TYPES = [
   'Fire Safety',
@@ -36,7 +37,7 @@ export default function AddInspectionModal({ isOpen, onClose, propertyId, onCrea
 
   useEffect(() => {
     if (isOpen) {
-      setForm({ ...INITIAL, inspection_date: new Date().toISOString().split('T')[0] });
+      setForm({ ...INITIAL, inspection_date: toLocalDate() });
       setSaving(false);
       setError(null);
     }

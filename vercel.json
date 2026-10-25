@@ -1,7 +1,13 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ],
   "functions": {
     "api/docs.js": {
@@ -9,6 +15,10 @@
     },
     "api/staff-docs.js": {
       "maxDuration": 30
+    },
+    "api/payment-reviews.js": {
+      "maxDuration": 60,
+      "includeFiles": "{public/logo.png,node_modules/pdfkit/js/data/**}"
     }
   }
 }

@@ -14,13 +14,33 @@ import Modal, { ModalBody, ModalFooter, ButtonPrimary, ButtonSecondary, ModalErr
 import { PageHeader, Badge, EmptyState, FormInput, FormSelect, FormTextarea } from '../components/ui/FormComponents';
 import { useAuth } from '../contexts/AuthContext';
 
+// No client helper exists in lib/api.js for this one; matches the 'delete-message' handler in api/features.js
+async function deleteMessageApi(id) {
+  const res = await fetch('/api/features', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'delete-message', id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete message failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export default function Messages() {
   const { profile } = useAuth();
-  const senderId = 'admin';
-  const senderName = profile?.full_name || 'Admin';
+  // Inbox and sender are the logged-in user, not a shared 'admin' mailbox.
+  // Recipients are picked from the staff table, so "me" is my staff row (matched by email);
+  // accounts with no staff row fall back to the profile id.
+  const [staff, setStaff] = useState([]);
+  const [staffLoaded, setStaffLoaded] = useState(false);
+  const myEmail = (profile?.email || '').toLowerCase();
+  const myStaff = staff.find((s) => (s.email || '').toLowerCase() === myEmail && myEmail);
+  const senderId = staffLoaded && profile ? (myStaff?.id || profile.id) : null;
+  const senderName = profile?.full_name || profile?.email || 'Staff';
 
   const [messages, setMessages] = useState([]);
-  const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -29,17 +49,24 @@ export default function Messages() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
   const [mobileDetail, setMobileDetail] = useState(false);
 
+  // Staff list first (it decides who "me" is), then the inbox for that id.
+  useEffect(() => {
+    fetchStaff('active')
+      .then((staffData) => setStaff(Array.isArray(staffData) ? staffData : staffData.staff || []))
+      .catch((err) => setError(err.message))
+      .finally(() => setStaffLoaded(true));
+  }, []);
+
   const loadData = useCallback(async () => {
+    if (!senderId) return; // profile/staff not loaded yet — effect re-runs when they are
     try {
       setError(null);
-      const [msgData, staffData] = await Promise.all([
-        fetchMessages(senderId),
-        fetchStaff('active'),
-      ]);
+      const msgData = await fetchMessages(senderId);
       setMessages(Array.isArray(msgData) ? msgData : msgData.messages || []);
-      setStaff(Array.isArray(staffData) ? staffData : staffData.staff || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -52,16 +79,17 @@ export default function Messages() {
   }, [loadData]);
 
   const selected = messages.find((m) => m.id === selectedId) || null;
-  const unreadCount = messages.filter((m) => !m.is_read).length;
+  // Server column is `read` (api/features.js mark-read / unread-count)
+  const unreadCount = messages.filter((m) => !m.read && m.recipient_id === senderId).length;
 
   async function handleSelect(msg) {
     setSelectedId(msg.id);
     setMobileDetail(true);
-    if (!msg.is_read) {
+    if (!msg.read && msg.recipient_id === senderId) {
       try {
         await markMessageRead(msg.id);
         setMessages((prev) =>
-          prev.map((m) => (m.id === msg.id ? { ...m, is_read: true } : m))
+          prev.map((m) => (m.id === msg.id ? { ...m, read: true } : m))
         );
       } catch {
         // silent — UI already shows it selected
@@ -108,15 +136,22 @@ export default function Messages() {
     }
   }
 
-  function handleDeleteConfirm() {
-    // For now, just remove from local state (no delete API specified)
-    if (deleteConfirm) {
+  async function handleDeleteConfirm() {
+    if (!deleteConfirm || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteMessageApi(deleteConfirm.id);
       setMessages((prev) => prev.filter((m) => m.id !== deleteConfirm.id));
       if (selectedId === deleteConfirm.id) {
         setSelectedId(null);
         setMobileDetail(false);
       }
       setDeleteConfirm(null);
+    } catch (err) {
+      setDeleteError(err.message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -210,7 +245,7 @@ export default function Messages() {
             {/* Message rows */}
             <div className="divide-y divide-slate-100 dark:divide-[#263554] max-h-[calc(100vh-320px)] overflow-y-auto">
               {sorted.map((msg) => {
-                const isUnread = !msg.is_read;
+                const isUnread = !msg.read && msg.recipient_id === senderId;
                 const isSelected = selectedId === msg.id;
                 return (
                   <button
@@ -390,7 +425,7 @@ export default function Messages() {
       {deleteConfirm && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) setDeleteConfirm(null); }}
+          onClick={(e) => { if (e.target === e.currentTarget && !deleting) { setDeleteConfirm(null); setDeleteError(null); } }}
         >
           <div className="mx-4 w-full max-w-md rounded-xl bg-white dark:bg-[#162036] p-8 shadow-xl animate-modal-in">
             <div className="flex items-center gap-3 mb-5">
@@ -405,19 +440,24 @@ export default function Messages() {
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">
               Are you sure you want to delete <strong>"{deleteConfirm.subject || '(No subject)'}"</strong>?
             </p>
+            {deleteError && (
+              <p className="mb-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+            )}
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => setDeleteConfirm(null)}
-                className="rounded-lg border border-slate-200 dark:border-[#263554] px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1e2d4a]"
+                onClick={() => { setDeleteConfirm(null); setDeleteError(null); }}
+                disabled={deleting}
+                className="rounded-lg border border-slate-200 dark:border-[#263554] px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1e2d4a] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                disabled={deleting}
+                className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
               >
                 <HiTrash className="h-4 w-4" />
-                Delete
+                {deleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>

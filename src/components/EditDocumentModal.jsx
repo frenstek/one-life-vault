@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { HiPencilSquare, HiCheckCircle } from 'react-icons/hi2';
-import { updateDocument, CATEGORIES } from '../lib/api';
+import { updateDocument, CATEGORIES, SUBCATEGORIES } from '../lib/api';
 import Modal, { ModalBody, ModalFooter, ModalError, ButtonPrimary, ButtonSecondary } from './ui/Modal';
 
 export default function EditDocumentModal({ isOpen, onClose, document, onSaveComplete }) {
@@ -50,15 +50,20 @@ export default function EditDocumentModal({ isOpen, onClose, document, onSaveCom
           </div>
           <div>
             <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Category <span className="text-red-500">*</span></label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(''); }}>
               <option value="">Select a category</option>
               {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
             </select>
           </div>
-          <div>
-            <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Subcategory <span className="text-xs text-slate-400">(optional)</span></label>
-            <input type="text" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} placeholder="e.g., Section 1, Part A" />
-          </div>
+          {category && SUBCATEGORIES[category]?.length > 0 && (
+            <div>
+              <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Subcategory <span className="text-xs text-slate-400">(optional)</span></label>
+              <select value={subcategory} onChange={(e) => setSubcategory(e.target.value)}>
+                <option value="">Select a subcategory</option>
+                {SUBCATEGORIES[category].map((sub) => <option key={sub} value={sub}>{sub}</option>)}
+              </select>
+            </div>
+          )}
           <ModalError message={error} />
         </div>
       </ModalBody>

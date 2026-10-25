@@ -9,6 +9,7 @@ import {
   HiTrash,
   HiCheckCircle,
   HiShieldCheck,
+  HiArrowDownTray,
 } from 'react-icons/hi2';
 import {
   fetchHazardRegister,
@@ -38,6 +39,8 @@ import Modal, {
   ModalError,
 } from '../components/ui/Modal';
 import { SkeletonGrid, SkeletonStatCard } from '../components/ui/Skeleton';
+import { exportRegisterPdf } from '../lib/registerPdfExport';
+import { toLocalDate } from '../lib/dates';
 
 const HAZARD_TYPE_LABELS = {
   slip_trip_fall: 'Slip/Trip/Fall',
@@ -84,7 +87,7 @@ const INITIAL_FORM = {
   location: '',
   hazard_type: 'other',
   reported_by: '',
-  date_identified: new Date().toISOString().split('T')[0],
+  date_identified: toLocalDate(),
   risk_level_before: 'medium',
   controls_implemented: '',
   risk_level_after: 'low',
@@ -304,13 +307,36 @@ export default function HazardRegister() {
         title="Hazard Register"
         subtitle="Identify, assess, and control workplace hazards"
         actions={
-          <button
-            onClick={() => openFormModal()}
-            className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-600"
-          >
-            <HiPlus className="h-4 w-4" />
-            Add Hazard
-          </button>
+          <>
+            <button
+              onClick={() => exportRegisterPdf({
+                title: 'Hazard Register',
+                columns: ['Ref #', 'Title', 'Type', 'Location', 'Risk Before', 'Risk After', 'Status', 'Date'],
+                rows: filtered.map((h) => [
+                  h.hazard_number || '',
+                  h.title || '',
+                  HAZARD_TYPE_LABELS[h.hazard_type] || h.hazard_type || '',
+                  h.location || '',
+                  capitalize(h.risk_level_before),
+                  capitalize(h.risk_level_after),
+                  STATUS_LABELS[h.status] || capitalize(h.status),
+                  h.date_identified ? formatDate(h.date_identified) : '',
+                ]),
+                filename: 'OLF-Hazard-Register.pdf',
+              })}
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <HiArrowDownTray className="h-4 w-4" />
+              Export PDF
+            </button>
+            <button
+              onClick={() => openFormModal()}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-600"
+            >
+              <HiPlus className="h-4 w-4" />
+              Add Hazard
+            </button>
+          </>
         }
       />
 

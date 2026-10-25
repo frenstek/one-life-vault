@@ -56,6 +56,10 @@ const ALLOWED_FIELDS = {
     'property_id', 'inspection_type', 'inspection_date', 'inspector',
     'result', 'notes', 'next_due_date',
   ],
+  property_risk_assessments: [
+    'property_id', 'assessment_date', 'assessor', 'status',
+    'overall_risk_level', 'items', 'general_notes', 'next_review_date',
+  ],
 };
 
 const VALID_TABLES = Object.keys(ALLOWED_FIELDS);
@@ -66,6 +70,8 @@ const VALID_RESIDENT_STATUSES = ['active', 'departed', 'transitioning'];
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 const VALID_MAINTENANCE_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled'];
 const VALID_INSPECTION_RESULTS = ['pass', 'fail', 'needs_attention'];
+const VALID_RISK_STATUSES = ['draft', 'completed'];
+const VALID_RISK_LEVELS = ['low', 'medium', 'high', 'critical'];
 
 // ─── GET Handlers ────────────────────────────────────────────────────────────
 
@@ -85,7 +91,7 @@ async function handleList(req, res) {
 
   if (error) {
     console.error('Properties query error:', error);
-    return res.status(500).json({ error: 'Failed to fetch properties', details: error.message });
+    return res.status(500).json({ error: 'Failed to fetch properties' });
   }
 
   if (!properties || properties.length === 0) {
@@ -116,15 +122,15 @@ async function handleList(req, res) {
 
   if (residentsResult.error) {
     console.error('Residents query error:', residentsResult.error);
-    return res.status(500).json({ error: 'Failed to fetch residents', details: residentsResult.error.message });
+    return res.status(500).json({ error: 'Failed to fetch residents' });
   }
   if (maintenanceResult.error) {
     console.error('Maintenance query error:', maintenanceResult.error);
-    return res.status(500).json({ error: 'Failed to fetch maintenance', details: maintenanceResult.error.message });
+    return res.status(500).json({ error: 'Failed to fetch maintenance' });
   }
   if (inspectionsResult.error) {
     console.error('Inspections query error:', inspectionsResult.error);
-    return res.status(500).json({ error: 'Failed to fetch inspections', details: inspectionsResult.error.message });
+    return res.status(500).json({ error: 'Failed to fetch inspections' });
   }
 
   // Group counts by property_id
@@ -174,11 +180,11 @@ async function handleGet(req, res) {
     if (propertyError.code === 'PGRST116') {
       return res.status(404).json({ error: 'Property not found' });
     }
-    return res.status(500).json({ error: 'Failed to fetch property', details: propertyError.message });
+    return res.status(500).json({ error: 'Failed to fetch property' });
   }
 
   // Fetch all related data in parallel
-  const [residentsResult, maintenanceResult, inspectionsResult, photosResult] = await Promise.all([
+  const [residentsResult, maintenanceResult, inspectionsResult, photosResult, riskResult] = await Promise.all([
     supabase
       .from('property_residents')
       .select('*')
@@ -199,24 +205,31 @@ async function handleGet(req, res) {
       .from('property_photos')
       .select('*')
       .eq('property_id', id)
-      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false }),
+    supabase
+      .from('property_risk_assessments')
+      .select('*')
+      .eq('property_id', id)
+      .order('assessment_date', { ascending: false }),
   ]);
 
   if (residentsResult.error) {
     console.error('Residents fetch error:', residentsResult.error);
-    return res.status(500).json({ error: 'Failed to fetch residents', details: residentsResult.error.message });
+    return res.status(500).json({ error: 'Failed to fetch residents' });
   }
   if (maintenanceResult.error) {
     console.error('Maintenance fetch error:', maintenanceResult.error);
-    return res.status(500).json({ error: 'Failed to fetch maintenance', details: maintenanceResult.error.message });
+    return res.status(500).json({ error: 'Failed to fetch maintenance' });
   }
   if (inspectionsResult.error) {
     console.error('Inspections fetch error:', inspectionsResult.error);
-    return res.status(500).json({ error: 'Failed to fetch inspections', details: inspectionsResult.error.message });
+    return res.status(500).json({ error: 'Failed to fetch inspections' });
   }
   if (photosResult.error) {
     console.error('Photos fetch error:', photosResult.error);
+  }
+  if (riskResult.error) {
+    console.error('Risk assessments fetch error:', riskResult.error);
   }
 
   // Build public URLs for photos
@@ -231,6 +244,7 @@ async function handleGet(req, res) {
     maintenance: maintenanceResult.data || [],
     inspections: inspectionsResult.data || [],
     photos,
+    risk_assessments: riskResult.data || [],
   });
 }
 
@@ -242,7 +256,7 @@ async function handleDashboard(req, res) {
 
   if (propError) {
     console.error('Properties query error:', propError);
-    return res.status(500).json({ error: 'Failed to fetch properties', details: propError.message });
+    return res.status(500).json({ error: 'Failed to fetch properties' });
   }
 
   const allProperties = properties || [];
@@ -299,15 +313,15 @@ async function handleDashboard(req, res) {
 
   if (residentsResult.error) {
     console.error('Residents count error:', residentsResult.error);
-    return res.status(500).json({ error: 'Failed to count residents', details: residentsResult.error.message });
+    return res.status(500).json({ error: 'Failed to count residents' });
   }
   if (maintenanceResult.error) {
     console.error('Maintenance count error:', maintenanceResult.error);
-    return res.status(500).json({ error: 'Failed to count maintenance', details: maintenanceResult.error.message });
+    return res.status(500).json({ error: 'Failed to count maintenance' });
   }
   if (inspectionsResult.error) {
     console.error('Inspections count error:', inspectionsResult.error);
-    return res.status(500).json({ error: 'Failed to count inspections', details: inspectionsResult.error.message });
+    return res.status(500).json({ error: 'Failed to count inspections' });
   }
 
   const totalResidents = residentsResult.count || 0;
@@ -367,7 +381,7 @@ async function handleCreateProperty(req, res) {
 
   if (error) {
     console.error('Property create error:', error);
-    return res.status(500).json({ error: 'Failed to create property', details: error.message });
+    return res.status(500).json({ error: 'Failed to create property' });
   }
 
   // Log the action
@@ -407,7 +421,7 @@ async function handleAddResident(req, res) {
     if (propError.code === 'PGRST116') {
       return res.status(404).json({ error: 'Property not found' });
     }
-    return res.status(500).json({ error: 'Failed to verify property', details: propError.message });
+    return res.status(500).json({ error: 'Failed to verify property' });
   }
 
   // Check capacity
@@ -419,7 +433,7 @@ async function handleAddResident(req, res) {
 
   if (countError) {
     console.error('Resident count error:', countError);
-    return res.status(500).json({ error: 'Failed to check capacity', details: countError.message });
+    return res.status(500).json({ error: 'Failed to check capacity' });
   }
 
   if (currentResidents >= property.capacity) {
@@ -443,7 +457,7 @@ async function handleAddResident(req, res) {
 
   if (error) {
     console.error('Resident create error:', error);
-    return res.status(500).json({ error: 'Failed to add resident', details: error.message });
+    return res.status(500).json({ error: 'Failed to add resident' });
   }
 
   // Log the action
@@ -485,7 +499,7 @@ async function handleAddMaintenance(req, res) {
     if (propError.code === 'PGRST116') {
       return res.status(404).json({ error: 'Property not found' });
     }
-    return res.status(500).json({ error: 'Failed to verify property', details: propError.message });
+    return res.status(500).json({ error: 'Failed to verify property' });
   }
 
   const { data: request, error } = await supabase
@@ -504,7 +518,7 @@ async function handleAddMaintenance(req, res) {
 
   if (error) {
     console.error('Maintenance create error:', error);
-    return res.status(500).json({ error: 'Failed to create maintenance request', details: error.message });
+    return res.status(500).json({ error: 'Failed to create maintenance request' });
   }
 
   // Log the action
@@ -550,7 +564,7 @@ async function handleAddInspection(req, res) {
     if (propError.code === 'PGRST116') {
       return res.status(404).json({ error: 'Property not found' });
     }
-    return res.status(500).json({ error: 'Failed to verify property', details: propError.message });
+    return res.status(500).json({ error: 'Failed to verify property' });
   }
 
   const { data: inspection, error } = await supabase
@@ -569,7 +583,7 @@ async function handleAddInspection(req, res) {
 
   if (error) {
     console.error('Inspection create error:', error);
-    return res.status(500).json({ error: 'Failed to record inspection', details: error.message });
+    return res.status(500).json({ error: 'Failed to record inspection' });
   }
 
   // Log the action
@@ -583,6 +597,72 @@ async function handleAddInspection(req, res) {
   });
 
   res.status(201).json(inspection);
+}
+
+async function handleAddRiskAssessment(req, res) {
+  const {
+    property_id, assessment_date, assessor, status,
+    overall_risk_level, items, general_notes, next_review_date,
+  } = req.body || {};
+
+  if (!property_id) {
+    return res.status(400).json({ error: 'Missing required field: property_id' });
+  }
+  if (!assessment_date) {
+    return res.status(400).json({ error: 'Missing required field: assessment_date' });
+  }
+  if (status && !VALID_RISK_STATUSES.includes(status)) {
+    return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_RISK_STATUSES.join(', ')}` });
+  }
+  if (overall_risk_level && !VALID_RISK_LEVELS.includes(overall_risk_level)) {
+    return res.status(400).json({ error: `Invalid risk level. Must be one of: ${VALID_RISK_LEVELS.join(', ')}` });
+  }
+
+  // Verify property exists
+  const { data: property, error: propError } = await supabase
+    .from('properties')
+    .select('id, name')
+    .eq('id', property_id)
+    .single();
+
+  if (propError) {
+    if (propError.code === 'PGRST116') {
+      return res.status(404).json({ error: 'Property not found' });
+    }
+    return res.status(500).json({ error: 'Failed to verify property' });
+  }
+
+  const { data: assessment, error } = await supabase
+    .from('property_risk_assessments')
+    .insert({
+      property_id,
+      assessment_date,
+      assessor: assessor?.trim() || null,
+      status: status || 'draft',
+      overall_risk_level: overall_risk_level || null,
+      items: items || [],
+      general_notes: general_notes?.trim() || null,
+      next_review_date: next_review_date || null,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Risk assessment create error:', error);
+    return res.status(500).json({ error: 'Failed to create risk assessment' });
+  }
+
+  // Log the action
+  await supabase.from('audit_log').insert({
+    user_email: 'system',
+    action: 'create',
+    resource_type: 'property_risk_assessment',
+    resource_id: assessment.id,
+    resource_name: `Risk Assessment - ${property.name}`,
+    details: { property_id, property_name: property.name, status: assessment.status, assessment_date },
+  });
+
+  res.status(201).json(assessment);
 }
 
 // ─── Photo Handlers ─────────────────────────────────────────────────────────
@@ -600,7 +680,7 @@ async function handleUploadPhoto(req, res) {
   if (propError) {
     return propError.code === 'PGRST116'
       ? res.status(404).json({ error: 'Property not found' })
-      : res.status(500).json({ error: 'Failed to verify property', details: propError.message });
+      : res.status(500).json({ error: 'Failed to verify property' });
   }
 
   let buffer;
@@ -627,8 +707,12 @@ async function handleUploadPhoto(req, res) {
 
   if (uploadError) {
     console.error('Photo upload error:', uploadError);
-    return res.status(500).json({ error: 'Failed to upload photo', details: uploadError.message });
+    return res.status(500).json({ error: 'Failed to upload photo' });
   }
+
+  // Build public URL
+  const { data: urlData } = supabase.storage.from('property-photos').getPublicUrl(storagePath);
+  const publicUrl = urlData?.publicUrl || null;
 
   const { data: photo, error: dbError } = await supabase
     .from('property_photos')
@@ -636,8 +720,7 @@ async function handleUploadPhoto(req, res) {
       property_id,
       storage_path: storagePath,
       file_name: sanitizedName,
-      file_type: fileType,
-      size: buffer.length,
+      url: publicUrl,
       is_cover: false,
       caption: caption?.trim() || null,
     })
@@ -647,11 +730,8 @@ async function handleUploadPhoto(req, res) {
   if (dbError) {
     console.error('Photo DB insert error:', dbError);
     await supabase.storage.from('property-photos').remove([storagePath]);
-    return res.status(500).json({ error: 'Failed to save photo metadata', details: dbError.message });
+    return res.status(500).json({ error: 'Failed to save photo metadata' });
   }
-
-  // Build public URL
-  const { data: urlData } = supabase.storage.from('property-photos').getPublicUrl(storagePath);
 
   await supabase.from('audit_log').insert({
     user_email: 'system', action: 'upload_photo', resource_type: 'property_photo',
@@ -659,7 +739,7 @@ async function handleUploadPhoto(req, res) {
     details: { property_id, property_name: property.name },
   });
 
-  res.status(201).json({ ...photo, url: urlData?.publicUrl || null });
+  res.status(201).json(photo);
 }
 
 async function handleDeletePhoto(req, res) {
@@ -672,7 +752,7 @@ async function handleDeletePhoto(req, res) {
   if (fetchError) {
     return fetchError.code === 'PGRST116'
       ? res.status(404).json({ error: 'Photo not found' })
-      : res.status(500).json({ error: 'Failed to fetch photo', details: fetchError.message });
+      : res.status(500).json({ error: 'Failed to fetch photo' });
   }
 
   if (photo.storage_path) {
@@ -681,7 +761,7 @@ async function handleDeletePhoto(req, res) {
 
   const { error: dbError } = await supabase.from('property_photos').delete().eq('id', photo_id);
   if (dbError) {
-    return res.status(500).json({ error: 'Failed to delete photo record', details: dbError.message });
+    return res.status(500).json({ error: 'Failed to delete photo record' });
   }
 
   await supabase.from('audit_log').insert({
@@ -705,7 +785,7 @@ async function handleSetCoverPhoto(req, res) {
     .from('property_photos').update({ is_cover: true }).eq('id', photo_id).select().single();
 
   if (error) {
-    return res.status(500).json({ error: 'Failed to set cover photo', details: error.message });
+    return res.status(500).json({ error: 'Failed to set cover photo' });
   }
 
   res.status(200).json(photo);
@@ -764,6 +844,14 @@ async function handleUpdate(req, res) {
       return res.status(400).json({ error: `Invalid result. Must be one of: ${VALID_INSPECTION_RESULTS.join(', ')}` });
     }
   }
+  if (table === 'property_risk_assessments') {
+    if (updates.status && !VALID_RISK_STATUSES.includes(updates.status)) {
+      return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_RISK_STATUSES.join(', ')}` });
+    }
+    if (updates.overall_risk_level && !VALID_RISK_LEVELS.includes(updates.overall_risk_level)) {
+      return res.status(400).json({ error: `Invalid risk level. Must be one of: ${VALID_RISK_LEVELS.join(', ')}` });
+    }
+  }
 
   // Set updated_at for the properties table
   if (table === 'properties') {
@@ -782,7 +870,7 @@ async function handleUpdate(req, res) {
     if (error.code === 'PGRST116') {
       return res.status(404).json({ error: `Record not found in ${table}` });
     }
-    return res.status(500).json({ error: `Failed to update record in ${table}`, details: error.message });
+    return res.status(500).json({ error: `Failed to update record in ${table}` });
   }
 
   // Log the action
@@ -822,7 +910,7 @@ async function handleDelete(req, res) {
     if (fetchError.code === 'PGRST116') {
       return res.status(404).json({ error: `Record not found in ${table}` });
     }
-    return res.status(500).json({ error: `Failed to fetch record from ${table}`, details: fetchError.message });
+    return res.status(500).json({ error: `Failed to fetch record from ${table}` });
   }
 
   // If deleting a property, also delete all related records + storage files
@@ -845,6 +933,7 @@ async function handleDelete(req, res) {
       supabase.from('property_maintenance').delete().eq('property_id', id),
       supabase.from('property_inspections').delete().eq('property_id', id),
       supabase.from('property_photos').delete().eq('property_id', id),
+      supabase.from('property_risk_assessments').delete().eq('property_id', id),
     ];
 
     const results = await Promise.all(deleteQueries);
@@ -862,7 +951,7 @@ async function handleDelete(req, res) {
 
   if (deleteError) {
     console.error(`${table} delete error:`, deleteError);
-    return res.status(500).json({ error: `Failed to delete record from ${table}`, details: deleteError.message });
+    return res.status(500).json({ error: `Failed to delete record from ${table}` });
   }
 
   const resourceName = record.name || record.participant_name || record.title || record.inspection_type || id;
@@ -917,6 +1006,8 @@ export default async function handler(req, res) {
           return await handleAddMaintenance(req, res);
         case 'add-inspection':
           return await handleAddInspection(req, res);
+        case 'add-risk-assessment':
+          return await handleAddRiskAssessment(req, res);
         case 'upload-photo':
           return await handleUploadPhoto(req, res);
         case 'delete-photo':
@@ -924,7 +1015,7 @@ export default async function handler(req, res) {
         case 'set-cover-photo':
           return await handleSetCoverPhoto(req, res);
         default:
-          return res.status(400).json({ error: 'Missing or invalid action. Valid POST actions: create-property, add-resident, add-maintenance, add-inspection, upload-photo, delete-photo, set-cover-photo' });
+          return res.status(400).json({ error: 'Missing or invalid action. Valid POST actions: create-property, add-resident, add-maintenance, add-inspection, add-risk-assessment, upload-photo, delete-photo, set-cover-photo' });
       }
     }
 
@@ -939,6 +1030,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Properties handler error:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

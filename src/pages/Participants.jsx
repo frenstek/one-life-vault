@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   HiPlus, HiMagnifyingGlass, HiUserGroup, HiPhone, HiEnvelope,
-  HiCheckCircle, HiXCircle, HiArrowRightOnRectangle,
+  HiCheckCircle, HiXCircle, HiArrowRightOnRectangle, HiChevronDown,
 } from 'react-icons/hi2';
-import { fetchParticipants, deleteParticipant } from '../lib/api';
+import { fetchParticipants, deleteParticipant, updateParticipant } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 import { SkeletonGrid } from '../components/ui/Skeleton';
 import ParticipantModal from '../components/ParticipantModal';
 
@@ -17,9 +18,11 @@ const STATUS_CONFIG = {
 };
 
 export default function Participants() {
+  const { isAdmin, isManager } = useAuth();
+  const isAdminOrManager = isAdmin || isManager;
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('All');
+  const [filter, setFilter] = useState(isAdminOrManager ? 'All' : 'active');
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -54,6 +57,15 @@ export default function Participants() {
     }
   }
 
+  async function handleStatusChange(id, newStatus) {
+    try {
+      await updateParticipant(id, { status: newStatus });
+      load();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   const activeCount = participants.filter(p => p.status === 'active').length;
 
   return (
@@ -66,13 +78,15 @@ export default function Participants() {
             {participants.length} total — {activeCount} active
           </p>
         </div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-600"
-        >
-          <HiPlus className="h-4 w-4" />
-          Add Participant
-        </button>
+        {isAdminOrManager && (
+          <button
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-600"
+          >
+            <HiPlus className="h-4 w-4" />
+            Add Participant
+          </button>
+        )}
       </div>
 
       {/* Search + Filters */}
@@ -87,21 +101,23 @@ export default function Participants() {
             className="w-full rounded-lg border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#162036] py-3 pl-11 pr-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           />
         </form>
-        <div className="flex gap-1.5">
-          {STATUS_FILTERS.map(s => (
-            <button
-              key={s}
-              onClick={() => setFilter(s)}
-              className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-                filter === s
-                  ? 'bg-accent-500 text-white'
-                  : 'bg-white dark:bg-[#162036] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#263554] hover:bg-slate-50 dark:hover:bg-[#1e2d4a]'
-              }`}
-            >
-              {s === 'All' ? 'All' : STATUS_CONFIG[s]?.label || s}
-            </button>
-          ))}
-        </div>
+        {isAdminOrManager && (
+          <div className="flex gap-1.5">
+            {STATUS_FILTERS.map(s => (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
+                  filter === s
+                    ? 'bg-accent-500 text-white'
+                    : 'bg-white dark:bg-[#162036] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#263554] hover:bg-slate-50 dark:hover:bg-[#1e2d4a]'
+                }`}
+              >
+                {s === 'All' ? 'All' : STATUS_CONFIG[s]?.label || s}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation */}
@@ -137,13 +153,15 @@ export default function Participants() {
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
             {search || filter !== 'All' ? 'No participants match your filters' : 'No participants yet'}
           </p>
-          <button
-            onClick={() => setModalOpen(true)}
-            className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent-500 hover:text-accent-600"
-          >
-            <HiPlus className="h-4 w-4" />
-            Add your first participant
-          </button>
+          {isAdminOrManager && (
+            <button
+              onClick={() => setModalOpen(true)}
+              className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent-500 hover:text-accent-600"
+            >
+              <HiPlus className="h-4 w-4" />
+              Add your first participant
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -169,10 +187,19 @@ export default function Participants() {
                       )}
                     </div>
                   </Link>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cfg.color}`}>
-                    <StatusIcon className="h-3 w-3" />
-                    {cfg.label}
-                  </span>
+                  {isAdminOrManager ? (
+                    <StatusDropdown
+                      status={p.status || 'active'}
+                      config={cfg}
+                      icon={StatusIcon}
+                      onChange={newStatus => handleStatusChange(p.id, newStatus)}
+                    />
+                  ) : (
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cfg.color}`}>
+                      <StatusIcon className="h-3.5 w-3.5" />
+                      {cfg.label}
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-4 space-y-2">
@@ -202,12 +229,14 @@ export default function Participants() {
                   >
                     View Profile
                   </Link>
-                  <button
-                    onClick={() => setDeleteConfirm(p)}
-                    className="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors"
-                  >
-                    Delete
-                  </button>
+                  {isAdminOrManager && (
+                    <button
+                      onClick={() => setDeleteConfirm(p)}
+                      className="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -221,6 +250,74 @@ export default function Participants() {
         onClose={() => setModalOpen(false)}
         onSaved={() => { setModalOpen(false); load(); }}
       />
+    </div>
+  );
+}
+
+// ─── Status Dropdown ──────────────────────────────────────────────────────────
+
+function StatusDropdown({ status, config, icon: Icon, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  const statuses = ['active', 'inactive', 'exited'];
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={e => { e.preventDefault(); e.stopPropagation(); setOpen(!open); }}
+        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all hover:ring-2 hover:ring-slate-200 dark:hover:ring-[#334766] ${config.color}`}
+        title="Change status"
+      >
+        <Icon className="h-3 w-3" />
+        {config.label}
+        <HiChevronDown className="h-2.5 w-2.5 opacity-60" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-lg border border-slate-200 dark:border-[#334766] bg-white dark:bg-[#162036] py-1 shadow-xl">
+          <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Change Status
+          </p>
+          {statuses.map(s => {
+            const cfg = STATUS_CONFIG[s];
+            const SIcon = cfg.icon;
+            const isActive = s === status;
+            return (
+              <button
+                key={s}
+                onClick={e => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!isActive) onChange(s);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${
+                  isActive
+                    ? 'bg-slate-50 dark:bg-[#1e2d4a] font-semibold text-slate-900 dark:text-white'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1e2d4a]'
+                }`}
+              >
+                <SIcon className={`h-3.5 w-3.5 ${
+                  s === 'active' ? 'text-green-500' : s === 'inactive' ? 'text-amber-500' : 'text-slate-400'
+                }`} />
+                {cfg.label}
+                {isActive && (
+                  <span className="ml-auto text-[10px] text-slate-400 dark:text-slate-500">Current</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

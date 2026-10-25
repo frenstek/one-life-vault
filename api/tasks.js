@@ -19,7 +19,7 @@ async function handleList(req, res) {
 
   if (error) {
     console.error('Tasks query error:', error);
-    return res.status(500).json({ error: 'Failed to fetch tasks', details: error.message });
+    return res.status(500).json({ error: 'Failed to fetch tasks' });
   }
 
   return res.status(200).json(data || []);
@@ -65,7 +65,7 @@ async function handleCreate(req, res) {
 
   if (error) {
     console.error('Create task error:', error);
-    return res.status(500).json({ error: 'Failed to create task', details: error.message });
+    return res.status(500).json({ error: 'Failed to create task' });
   }
 
   return res.status(201).json(data);
@@ -94,7 +94,7 @@ async function handleUpdate(req, res, id) {
 
   if (error) {
     console.error('Update task error:', error);
-    return res.status(500).json({ error: 'Failed to update task', details: error.message });
+    return res.status(500).json({ error: 'Failed to update task' });
   }
 
   return res.status(200).json(data);
@@ -107,7 +107,7 @@ async function handleDelete(req, res, id) {
 
   if (error) {
     console.error('Delete task error:', error);
-    return res.status(500).json({ error: 'Failed to delete task', details: error.message });
+    return res.status(500).json({ error: 'Failed to delete task' });
   }
 
   return res.status(200).json({ success: true });
@@ -125,7 +125,7 @@ async function handleListNotes(req, res) {
     .eq('task_id', task_id)
     .order('created_at', { ascending: true });
 
-  if (error) return res.status(500).json({ error: 'Failed to fetch notes', details: error.message });
+  if (error) return res.status(500).json({ error: 'Failed to fetch notes' });
   return res.status(200).json(data || []);
 }
 
@@ -139,7 +139,7 @@ async function handleAddNote(req, res) {
     .select('*')
     .single();
 
-  if (error) return res.status(500).json({ error: 'Failed to add note', details: error.message });
+  if (error) return res.status(500).json({ error: 'Failed to add note' });
   return res.status(201).json(data);
 }
 
@@ -148,7 +148,7 @@ async function handleDeleteNote(req, res) {
   if (!note_id) return res.status(400).json({ error: 'note_id required' });
 
   const { error } = await supabase.from('task_notes').delete().eq('id', note_id);
-  if (error) return res.status(500).json({ error: 'Failed to delete note', details: error.message });
+  if (error) return res.status(500).json({ error: 'Failed to delete note' });
   return res.status(200).json({ success: true });
 }
 

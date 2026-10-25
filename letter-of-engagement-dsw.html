@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One Life Foundation — Letter of Engagement — Disability Support Worker</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --olf-blue: #309edd;
+      --olf-blue-dark: #1a7ab8;
+      --olf-green: #0ea03e;
+      --text-primary: #1a1a2e;
+      --text-secondary: #4a4a5a;
+      --border: #d0d5dd;
+    }
+
+    @page {
+      size: A4;
+      margin: 20mm 18mm;
+    }
+
+    @media print {
+      body { font-size: 10pt; }
+      .page-break { page-break-before: always; }
+      .no-print { display: none; }
+      h2 { page-break-after: avoid; }
+      table { page-break-inside: avoid; }
+      .signature-block { page-break-inside: avoid; }
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 11pt;
+      line-height: 1.65;
+      color: var(--text-primary);
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 40px;
+      background: #fff;
+    }
+
+    .doc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 3px solid var(--olf-blue);
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+
+    .doc-header img {
+      height: 80px;
+      width: auto;
+    }
+
+    .doc-header-right {
+      text-align: right;
+    }
+
+    .doc-header-right .company-name {
+      font-size: 18pt;
+      font-weight: 700;
+      color: var(--olf-blue-dark);
+    }
+
+    .doc-header-right .company-details {
+      font-size: 8.5pt;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    .placeholder {
+      color: #999;
+      font-style: italic;
+    }
+
+    .field-line {
+      border-bottom: 1px solid #999;
+      display: inline-block;
+      min-width: 200px;
+      margin-left: 4px;
+    }
+
+    .field-line.short { min-width: 120px; }
+    .field-line.long { min-width: 320px; }
+
+    h2 {
+      font-size: 12pt;
+      font-weight: 700;
+      color: var(--olf-blue-dark);
+      margin: 24px 0 10px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid var(--olf-blue);
+    }
+
+    h3 {
+      font-size: 11pt;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 14px 0 6px;
+    }
+
+    p {
+      margin-bottom: 10px;
+    }
+
+    ul, ol {
+      margin: 6px 0 12px 24px;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 10pt;
+    }
+
+    table th, table td {
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    table th {
+      background: var(--olf-blue);
+      color: #fff;
+      font-weight: 600;
+      width: 38%;
+    }
+
+    table td {
+      background: #fff;
+    }
+
+    .sig-row {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 24px;
+    }
+
+    .sig-field {
+      flex: 1;
+    }
+
+    .sig-label {
+      font-size: 9pt;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .sig-line {
+      border-bottom: 1px solid var(--text-primary);
+      height: 32px;
+    }
+
+    .doc-footer {
+      margin-top: 40px;
+      padding-top: 14px;
+      border-top: 2px solid var(--olf-blue);
+      text-align: center;
+      font-size: 8.5pt;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    .doc-footer strong {
+      color: var(--olf-blue-dark);
+    }
+
+    .print-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: var(--olf-blue);
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      font-size: 11pt;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(48, 158, 221, 0.35);
+      font-family: inherit;
+    }
+
+    .print-btn:hover { background: var(--olf-blue-dark); }
+
+    .highlight-box {
+      background: #eef6fd;
+      border-left: 4px solid var(--olf-blue);
+      padding: 12px 16px;
+      border-radius: 0 6px 6px 0;
+      margin: 12px 0;
+    }
+
+    .warning-box {
+      background: #fef3f2;
+      border-left: 4px solid #d92d20;
+      padding: 12px 16px;
+      border-radius: 0 6px 6px 0;
+      margin: 12px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <button class="print-btn no-print" onclick="window.print()">Print / Save as PDF</button>
+
+  <!-- HEADER -->
+  <div class="doc-header">
+    <img src="public/logo.png" alt="One Life Foundation Logo">
+    <div class="doc-header-right">
+      <div class="company-name">One Life Foundation</div>
+      <div class="company-details">
+        ABN 55 643 227 061 &bull; NDIS Registration No. 405 012 0437<br>
+        1343-1345 Donnybrook Rd, Woodstock, VIC<br>
+        (04) 5222 7799 &bull; support@olfndisservices.com.au
+      </div>
+    </div>
+  </div>
+
+  <!-- DATE & ADDRESS BLOCK -->
+  <p>Date: <span class="field-line short"></span></p>
+  <p style="margin-bottom:0;">To: <span class="field-line long"></span></p>
+  <p style="margin-bottom:0;">Address: <span class="field-line long"></span></p>
+  <p>
+    <span style="display:inline-block;width:38px;"></span>
+    <span class="field-line long"></span>
+  </p>
+
+  <h2 style="border-bottom:none; text-align:center; font-size:14pt; margin-top:20px;">
+    Letter of Engagement — Disability Support Worker
+  </h2>
+
+  <p>Dear <span class="field-line short"></span>,</p>
+
+  <p>We are pleased to offer you a position as a <strong>Disability Support Worker</strong> with <strong>One Life Foundation Pty Ltd</strong>. We believe your skills and experience will be a valuable addition to our team, and we look forward to working with you to deliver quality support to our participants.</p>
+
+  <p>Please read the following terms and conditions carefully before signing.</p>
+
+  <!-- 1. POSITION DETAILS -->
+  <h2>1. Position Details</h2>
+  <table>
+    <tr><th>Position Title</th><td>Disability Support Worker</td></tr>
+    <tr><th>Employment Type</th><td>Casual</td></tr>
+    <tr><th>Commencement Date</th><td class="placeholder">[DD/MM/YYYY]</td></tr>
+    <tr><th>Reporting To</th><td class="placeholder">[Manager Name / Title]</td></tr>
+    <tr><th>Primary Location</th><td class="placeholder">[Site Address / Various as directed]</td></tr>
+    <tr><th>Award Classification</th><td>Social, Community, Home Care and Disability Services Industry Award 2010 — Level <span class="placeholder">[X]</span>, Pay Point <span class="placeholder">[X]</span></td></tr>
+    <tr><th>Hourly Rate (Ordinary Hours)</th><td>$<span class="placeholder">[Amount]</span> per hour (inclusive of 25% casual loading)</td></tr>
+  </table>
+
+  <!-- 2. NATURE OF CASUAL EMPLOYMENT -->
+  <h2>2. Nature of Casual Employment</h2>
+  <p>Your employment will be on a <strong>casual basis</strong> under section 15A of the <em>Fair Work Act 2009</em> (Cth), commencing on the date specified above.</p>
+  <p>As a casual employee:</p>
+  <ul>
+    <li>One Life Foundation makes no firm advance commitment to continuing and indefinite work according to an agreed work pattern.</li>
+    <li>Work will be offered to you as it becomes available, and you may accept or decline each offer.</li>
+    <li>You will be paid a casual loading in lieu of entitlements such as paid annual leave and paid personal/carer's leave.</li>
+    <li>Each engagement stands alone — there is no guaranteed minimum number of hours per week.</li>
+  </ul>
+
+  <h3>Casual Conversion</h3>
+  <p>As a casual employee, you may have the right to request conversion to permanent (full-time or part-time) employment under the <em>Fair Work Act 2009</em>. The general requirements are:</p>
+  <ul>
+    <li>You have been employed by One Life Foundation for at least 12 months;</li>
+    <li>You have worked a regular pattern of hours for at least the last 6 months on an ongoing basis; and</li>
+    <li>Those hours could reasonably continue as a permanent employee without significant change.</li>
+  </ul>
+  <p>If you believe you meet these requirements, you may submit a written request to your manager. One Life Foundation will respond within 21 days in accordance with its obligations under the Act.</p>
+
+  <!-- 3. DUTIES AND RESPONSIBILITIES -->
+  <h2>3. Duties and Responsibilities</h2>
+  <p>Your role as a Disability Support Worker will include, but is not limited to:</p>
+  <ul>
+    <li>Providing in-home and community-based support to NDIS participants with daily living tasks, including personal care (washing, dressing, showering, grooming), meal preparation, domestic assistance, and transport.</li>
+    <li>Supporting participants with community access and social participation, including medical appointments, shopping, and recreational outings.</li>
+    <li>Assisting participants to build self-confidence, independence, and social skills in line with their individual goals and support plans.</li>
+    <li>Developing and implementing participant-specific programs in collaboration with coordinators and allied health professionals.</li>
+    <li>Safely operating mobility equipment, including hoists, wheelchairs, and shower chairs, in accordance with training provided.</li>
+    <li>Accurately completing shift notes, incident reports, and other documentation as required.</li>
+    <li>Following all participant support plans, risk assessments, and behavioural support plans.</li>
+    <li>Reporting any concerns regarding participant welfare, safety, or changes in condition to your supervisor promptly.</li>
+  </ul>
+  <p>You may also be required to perform other duties reasonably directed by One Life Foundation, having regard to your skills, training, and experience. You may be required to work at different locations as directed.</p>
+
+  <!-- 4. TERMS AND CONDITIONS -->
+  <div class="page-break"></div>
+  <h2>4. Terms and Conditions of Employment</h2>
+  <p>Unless more generous provisions are set out in this letter or the attached schedule, the terms and conditions of your employment will be those contained in the <strong>Social, Community, Home Care and Disability Services Industry Award 2010</strong> and applicable legislation, including the National Employment Standards (NES) in the <em>Fair Work Act 2009</em> (Cth).</p>
+  <p>You can access information about minimum terms and conditions of employment from the <strong>Fair Work Ombudsman</strong> on <strong>13 13 94</strong> or at <strong>www.fairwork.gov.au</strong>.</p>
+
+  <!-- 5. PRE-EMPLOYMENT REQUIREMENTS -->
+  <h2>5. Pre-Employment Requirements</h2>
+  <div class="warning-box">
+    <p style="margin-bottom:6px;"><strong>This offer of employment is conditional upon satisfactory completion of the following:</strong></p>
+    <ul style="margin-top:0;">
+      <li><strong>NDIS Worker Screening Check</strong> — You must hold a valid and current NDIS Worker Screening clearance prior to commencing work.</li>
+      <li><strong>First Aid and CPR Certification</strong> — A current First Aid and CPR certificate must be provided prior to your first shift.</li>
+      <li><strong>Right to Work in Australia</strong> — Evidence of your right to work in Australia (e.g., passport, visa, birth certificate).</li>
+      <li><strong>Driver's Licence</strong> — A current Australian driver's licence (where the role requires transport of participants).</li>
+      <li><strong>Referee Checks</strong> — Satisfactory completion of reference checks from two professional referees.</li>
+    </ul>
+    <p style="margin-bottom:0;">Failure to provide the above documentation may result in the withdrawal of this offer or termination of employment.</p>
+  </div>
+
+  <!-- 6. NDIS CODE OF CONDUCT -->
+  <h2>6. NDIS Code of Conduct</h2>
+  <p>As an employee delivering NDIS-funded supports, you are required to comply with the <strong>NDIS Code of Conduct</strong> at all times. This means you must:</p>
+  <ul>
+    <li>Act with respect for individual rights to freedom of expression, self-determination, and decision-making in accordance with applicable laws and conventions.</li>
+    <li>Respect the privacy of people with disability.</li>
+    <li>Provide supports and services in a safe and competent manner, with care and skill.</li>
+    <li>Act with integrity, honesty, and transparency.</li>
+    <li>Promptly take steps to raise and act on concerns about matters that may impact the quality and safety of supports and services provided to people with disability.</li>
+    <li>Take all reasonable steps to prevent and respond to all forms of violence against, and exploitation, neglect, and abuse of, people with disability.</li>
+    <li>Take all reasonable steps to prevent and respond to sexual misconduct.</li>
+  </ul>
+  <p>A breach of the NDIS Code of Conduct may result in disciplinary action, including termination of employment, and may be reported to the NDIS Quality and Safeguards Commission.</p>
+
+  <!-- 7. WORK HEALTH AND SAFETY -->
+  <h2>7. Work Health and Safety</h2>
+  <p>One Life Foundation is committed to providing a safe working environment. You are required to:</p>
+  <ul>
+    <li>Take reasonable care for your own health and safety and the health and safety of others.</li>
+    <li>Comply with all workplace health and safety policies, procedures, and reasonable instructions.</li>
+    <li>Use personal protective equipment (PPE) as required.</li>
+    <li>Report all hazards, incidents, near misses, and injuries immediately to your supervisor.</li>
+    <li>Not attend work while under the influence of drugs or alcohol.</li>
+    <li>Participate in WHS training and inductions as required.</li>
+  </ul>
+
+  <!-- 8. INCIDENT REPORTING -->
+  <h2>8. Incident Reporting</h2>
+  <p>You are required to report all incidents, accidents, near misses, and allegations of abuse, neglect, or exploitation immediately to your supervisor and in accordance with One Life Foundation's Incident Management Policy. Reportable incidents must also be notified to the NDIS Quality and Safeguards Commission as required by law.</p>
+
+  <!-- 9. CONFIDENTIALITY AND PRIVACY -->
+  <h2>9. Confidentiality and Privacy</h2>
+  <p>By accepting this offer, you acknowledge and agree that you will not, during or after your employment, except with the express written consent of One Life Foundation or as required by law or in the proper performance of your duties:</p>
+  <ul>
+    <li>Use or disclose any confidential information relating to One Life Foundation's business, including but not limited to participant details, support plans, medical information, operational data, trade secrets, pricing structures, and internal policies.</li>
+    <li>Access, copy, or remove any records, documents, or data belonging to One Life Foundation or its participants except as necessary for your duties.</li>
+  </ul>
+  <p>You must comply with the <em>Privacy Act 1988</em> (Cth) and the Australian Privacy Principles at all times. Participant information must only be collected, used, and disclosed in accordance with One Life Foundation's Privacy Policy.</p>
+  <p>This obligation of confidentiality survives the termination of your employment.</p>
+
+  <!-- 10. CONFLICT OF INTEREST -->
+  <h2>10. Conflict of Interest</h2>
+  <p>You must disclose to One Life Foundation any actual, potential, or perceived conflict of interest that may arise during your employment. You must not, without prior written approval, engage in any outside employment or activity that may conflict with your duties or with the interests of One Life Foundation or its participants.</p>
+
+  <!-- 11. TRAINING AND PROFESSIONAL DEVELOPMENT -->
+  <div class="page-break"></div>
+  <h2>11. Training and Professional Development</h2>
+  <p>You are required to:</p>
+  <ul>
+    <li>Complete all mandatory induction and orientation training prior to or upon commencement.</li>
+    <li>Attend and complete ongoing training as directed by One Life Foundation, including refresher courses for First Aid, CPR, manual handling, and medication administration.</li>
+    <li>Maintain current and valid certifications as required for your role (NDIS Worker Screening, First Aid/CPR).</li>
+    <li>Participate in performance reviews and professional development discussions as scheduled.</li>
+  </ul>
+  <p>One Life Foundation will provide reasonable support and access to training opportunities relevant to your role.</p>
+
+  <!-- 12. DRUG AND ALCOHOL -->
+  <h2>12. Drug and Alcohol Policy</h2>
+  <p>You must not attend work, or perform any duties on behalf of One Life Foundation, while under the influence of alcohol, illicit drugs, or any substance that may impair your ability to perform your duties safely. One Life Foundation reserves the right to conduct drug and alcohol testing in accordance with its policies and applicable law.</p>
+
+  <!-- 13. USE OF PROPERTY AND TECHNOLOGY -->
+  <h2>13. Use of Property and Technology</h2>
+  <p>Any property, equipment, uniforms, keys, access cards, mobile devices, or technology provided to you by One Life Foundation remains the property of One Life Foundation and must be:</p>
+  <ul>
+    <li>Used only for authorised work purposes.</li>
+    <li>Maintained in good condition.</li>
+    <li>Returned immediately upon request or upon termination of employment.</li>
+  </ul>
+  <p>You must not use personal devices to photograph, record, or store participant information unless expressly authorised in writing.</p>
+
+  <!-- 14. TERMINATION -->
+  <h2>14. Termination of Employment</h2>
+  <p>As a casual employee, your employment may be terminated at any time by either party. One Life Foundation may cease offering you shifts without notice, and you may cease accepting shifts without notice.</p>
+  <p>Notwithstanding the above, One Life Foundation may terminate your employment immediately (summary dismissal) in cases of serious misconduct, including but not limited to:</p>
+  <ul>
+    <li>Theft, fraud, or dishonesty.</li>
+    <li>Serious breach of the NDIS Code of Conduct.</li>
+    <li>Violence, harassment, or bullying.</li>
+    <li>Being under the influence of drugs or alcohol while on duty.</li>
+    <li>Serious or wilful neglect of duties.</li>
+    <li>Any conduct that poses a risk to the safety or wellbeing of participants, staff, or the public.</li>
+  </ul>
+  <p>Upon termination, you must return all One Life Foundation property and cease using any confidential information.</p>
+
+  <!-- 15. THE AGREEMENT -->
+  <h2>15. The Agreement</h2>
+  <p>The terms and conditions set out in this letter and the attached schedule constitute the complete terms of your engagement and replace any prior understanding, agreement, or representation between you and One Life Foundation.</p>
+  <p>These terms may only be varied by a written agreement signed by both you and an authorised representative of One Life Foundation.</p>
+
+  <h3>Attached Schedule</h3>
+  <p>The following documents form part of this engagement:</p>
+  <ol>
+    <li>Disability Support Worker — Position Description</li>
+    <li>Fair Work Information Statement (National Employment Standards)</li>
+    <li>Casual Employment Information Statement</li>
+    <li>One Life Foundation Policies and Procedures (available via the staff portal)</li>
+  </ol>
+
+  <!-- CLOSING -->
+  <h2>16. Contact</h2>
+  <p>If you have any questions about the terms and conditions of your employment, please do not hesitate to contact us:</p>
+  <table>
+    <tr><th>Email</th><td>support@olfndisservices.com.au</td></tr>
+    <tr><th>Phone</th><td>(04) 5222 7799</td></tr>
+  </table>
+
+  <p>We look forward to welcoming you to the One Life Foundation team and are confident you will make a positive contribution to the lives of the participants we support.</p>
+
+  <p>Yours sincerely,</p>
+
+  <div style="margin: 30px 0;">
+    <div class="sig-row">
+      <div class="sig-field">
+        <div class="sig-line"></div>
+        <div class="sig-label" style="margin-top:4px;">Name</div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-line"></div>
+        <div class="sig-label" style="margin-top:4px;">Signature</div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-line"></div>
+        <div class="sig-label" style="margin-top:4px;">Date</div>
+      </div>
+    </div>
+    <p><strong>General Manager</strong><br>One Life Foundation Pty Ltd</p>
+  </div>
+
+  <!-- ACCEPTANCE -->
+  <div class="page-break"></div>
+  <h2>Acceptance of Offer</h2>
+
+  <div class="highlight-box">
+    <p style="margin-bottom:0;">I, the undersigned, confirm that I have read and understood the terms and conditions of employment set out in this letter and the attached schedule. I accept this offer of casual employment and acknowledge that:</p>
+  </div>
+
+  <ul>
+    <li>I understand the nature of casual employment as described in this letter.</li>
+    <li>I agree to comply with the NDIS Code of Conduct at all times.</li>
+    <li>I agree to comply with all One Life Foundation policies and procedures.</li>
+    <li>I will maintain all required certifications and screening checks throughout my employment.</li>
+    <li>I understand my obligations regarding confidentiality, privacy, and incident reporting.</li>
+    <li>I have received and read the Fair Work Information Statement and the Casual Employment Information Statement.</li>
+  </ul>
+
+  <h3>Employee</h3>
+  <div class="sig-row">
+    <div class="sig-field">
+      <div class="sig-label">Full Name</div>
+      <div class="sig-line"></div>
+    </div>
+    <div class="sig-field">
+      <div class="sig-label">Signature</div>
+      <div class="sig-line"></div>
+    </div>
+    <div class="sig-field">
+      <div class="sig-label">Date</div>
+      <div class="sig-line"></div>
+    </div>
+  </div>
+
+  <h3>Witness</h3>
+  <div class="sig-row">
+    <div class="sig-field">
+      <div class="sig-label">Full Name</div>
+      <div class="sig-line"></div>
+    </div>
+    <div class="sig-field">
+      <div class="sig-label">Signature</div>
+      <div class="sig-line"></div>
+    </div>
+    <div class="sig-field">
+      <div class="sig-label">Date</div>
+      <div class="sig-line"></div>
+    </div>
+  </div>
+
+  <p style="margin-top: 20px; font-style: italic; color: var(--text-secondary); font-size: 10pt;">Please return the signed acceptance to One Life Foundation within 7 days of the date of this letter.</p>
+
+  <!-- FOOTER -->
+  <div class="doc-footer">
+    <strong>One Life Foundation Pty Ltd</strong> &nbsp;|&nbsp; ABN 55 643 227 061 &nbsp;|&nbsp; NDIS Registration No. 405 012 0437<br>
+    Phone: (04) 5222 7799 &nbsp;|&nbsp; support@olfndisservices.com.au &nbsp;|&nbsp; www.olfndisservices.com.au<br>
+    1343-1345 Donnybrook Rd, Woodstock, VIC
+  </div>
+
+</body>
+</html>

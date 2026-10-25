@@ -19,6 +19,7 @@ import {
   HiMapPin,
   HiCurrencyDollar,
   HiHome,
+  HiShieldCheck,
 } from 'react-icons/hi2';
 import {
   fetchProperty,
@@ -30,6 +31,9 @@ import AddResidentModal from '../components/AddResidentModal';
 import AddMaintenanceModal from '../components/AddMaintenanceModal';
 import AddInspectionModal from '../components/AddInspectionModal';
 import PropertyProfileTab from '../components/PropertyProfileTab';
+import RiskAssessmentTab from '../components/RiskAssessmentTab';
+import EditPropertyModal from '../components/EditPropertyModal';
+import { toLocalDate } from '../lib/dates';
 
 const formatDateShort = (d) => {
   if (!d) return '--';
@@ -38,7 +42,8 @@ const formatDateShort = (d) => {
 
 const isOverdue = (dateStr) => {
   if (!dateStr) return false;
-  return new Date(dateStr) < new Date();
+  // Compare calendar days in local time; due today is not overdue yet
+  return String(dateStr).slice(0, 10) < toLocalDate();
 };
 
 export default function PropertyDetail() {
@@ -51,6 +56,7 @@ export default function PropertyDetail() {
   const [addResidentOpen, setAddResidentOpen] = useState(false);
   const [addMaintenanceOpen, setAddMaintenanceOpen] = useState(false);
   const [addInspectionOpen, setAddInspectionOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeparted, setShowDeparted] = useState(false);
@@ -85,7 +91,7 @@ export default function PropertyDetail() {
   async function handleRemoveResident(residentId) {
     if (!confirm('Remove this resident from the property?')) return;
     try {
-      await updatePropertyRecord('residents', residentId, { status: 'departed', move_out_date: new Date().toISOString().split('T')[0] });
+      await updatePropertyRecord('property_residents', residentId, { status: 'departed', move_out_date: toLocalDate() });
       loadProperty();
     } catch (err) {
       alert(err.message);
@@ -97,8 +103,8 @@ export default function PropertyDetail() {
     try {
       const updates = { status: newStatus };
       if (newStatus === 'completed' && cost) updates.cost = Number(cost);
-      if (newStatus === 'completed') updates.completed_date = new Date().toISOString().split('T')[0];
-      await updatePropertyRecord('maintenance', maintId, updates);
+      if (newStatus === 'completed') updates.completed_date = toLocalDate();
+      await updatePropertyRecord('property_maintenance', maintId, updates);
       setEditingMaint(null);
       loadProperty();
     } catch (err) {
@@ -111,7 +117,7 @@ export default function PropertyDetail() {
   async function handleDeleteMaintenance(maintId) {
     if (!confirm('Delete this maintenance request?')) return;
     try {
-      await deletePropertyRecord('maintenance', maintId);
+      await deletePropertyRecord('property_maintenance', maintId);
       loadProperty();
     } catch (err) {
       alert(err.message);
@@ -137,6 +143,7 @@ export default function PropertyDetail() {
   const residents = p.residents || [];
   const maintenance = p.maintenance || [];
   const inspections = p.inspections || [];
+  const riskAssessments = p.risk_assessments || [];
 
   const currentResidents = residents.filter((r) => r.status === 'active' || !r.status);
   const departedResidents = residents.filter((r) => r.status === 'departed');
@@ -173,6 +180,7 @@ export default function PropertyDetail() {
     { id: 'residents', label: 'Residents', icon: HiUsers, count: currentResidents.length },
     { id: 'maintenance', label: 'Maintenance', icon: HiWrenchScrewdriver, count: maintenance.filter((m) => m.status !== 'completed' && m.status !== 'cancelled').length },
     { id: 'inspections', label: 'Inspections', icon: HiClipboardDocumentCheck, count: inspections.length },
+    { id: 'risk-assessment', label: 'Risk Assessment', icon: HiShieldCheck, count: riskAssessments.length },
   ];
 
   return (
@@ -210,7 +218,7 @@ export default function PropertyDetail() {
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <button
-              onClick={() => {/* Could open an edit modal in the future */}}
+              onClick={() => setEditOpen(true)}
               className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
             >
               <HiPencilSquare className="h-4 w-4" /> Edit
@@ -225,18 +233,18 @@ export default function PropertyDetail() {
         </div>
 
         {/* Manager info */}
-        {(p.manager_name || p.manager_phone) && (
+        {(p.property_manager || p.contact_phone) && (
           <div className="mt-5 flex flex-wrap items-center gap-5 rounded-lg bg-slate-50 dark:bg-[#1e2d4a] px-5 py-4">
-            {p.manager_name && (
+            {p.property_manager && (
               <div className="flex items-center gap-1.5 text-sm text-slate-600">
                 <HiUser className="h-4 w-4 text-slate-400" />
-                <span className="font-medium">{p.manager_name}</span>
+                <span className="font-medium">{p.property_manager}</span>
               </div>
             )}
-            {p.manager_phone && (
+            {p.contact_phone && (
               <div className="flex items-center gap-1.5 text-sm text-slate-600">
                 <HiPhone className="h-4 w-4 text-slate-400" />
-                <span>{p.manager_phone}</span>
+                <span>{p.contact_phone}</span>
               </div>
             )}
             {p.capacity && (
@@ -318,6 +326,10 @@ export default function PropertyDetail() {
         />
       )}
 
+      {activeTab === 'risk-assessment' && (
+        <RiskAssessmentTab property={p} onRefresh={loadProperty} />
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div
@@ -392,6 +404,15 @@ export default function PropertyDetail() {
         propertyId={propertyId}
         onCreated={() => {
           setAddInspectionOpen(false);
+          loadProperty();
+        }}
+      />
+      <EditPropertyModal
+        isOpen={editOpen}
+        onClose={() => setEditOpen(false)}
+        property={p}
+        onUpdated={() => {
+          setEditOpen(false);
           loadProperty();
         }}
       />

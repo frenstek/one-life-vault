@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One Life Foundation — MTA Service Agreement</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --olf-blue: #309edd;
+      --olf-blue-dark: #1a7ab8;
+      --text-primary: #1a1a2e;
+      --text-secondary: #4a4a5a;
+      --border: #d0d5dd;
+    }
+
+    @page {
+      size: A4;
+      margin: 20mm 18mm;
+    }
+
+    @media print {
+      body { font-size: 10pt; }
+      .page-break { page-break-before: always; }
+      .no-print { display: none; }
+      h2 { page-break-after: avoid; }
+      table { page-break-inside: avoid; }
+      .signature-block { page-break-inside: avoid; }
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.55;
+      color: var(--text-primary);
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 40px;
+      background: #fff;
+    }
+
+    /* Header */
+    .doc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 3px solid var(--olf-blue);
+      padding-bottom: 16px;
+      margin-bottom: 10px;
+    }
+    .doc-header img { height: 72px; width: auto; }
+    .doc-header-right { text-align: right; }
+    .doc-header-right .company-name { font-size: 17pt; font-weight: 700; color: var(--olf-blue-dark); }
+    .doc-header-right .company-tagline { font-size: 8.5pt; color: var(--text-secondary); margin-top: 2px; }
+
+    /* Title */
+    .doc-title-block { text-align: center; margin: 24px 0 10px; }
+    .doc-title { font-size: 19pt; font-weight: 700; color: var(--olf-blue-dark); }
+    .doc-subtitle { font-size: 11pt; color: var(--text-secondary); margin-top: 4px; }
+
+    /* Sections */
+    h2 {
+      font-size: 12.5pt; font-weight: 700; color: var(--olf-blue-dark);
+      margin: 24px 0 10px; padding-bottom: 5px;
+      border-bottom: 2px solid var(--olf-blue);
+    }
+    h2 .section-num {
+      display: inline-block; background: var(--olf-blue); color: #fff;
+      width: 24px; height: 24px; line-height: 24px; text-align: center;
+      border-radius: 50%; font-size: 10.5pt; margin-right: 7px; vertical-align: middle;
+    }
+    h3 { font-size: 10.5pt; font-weight: 600; color: var(--text-primary); margin: 14px 0 6px; }
+    p { margin-bottom: 8px; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 9.5pt; }
+    table th, table td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+    table th { background: var(--olf-blue); color: #fff; font-weight: 600; width: 38%; }
+    table td { background: #fff; }
+    table td.ph { color: #999; font-style: italic; }
+
+    /* Lists */
+    ul, ol { margin: 6px 0 10px 22px; }
+    li { margin-bottom: 3px; }
+
+    /* Signature */
+    .signature-block { margin-top: 30px; }
+    .sig-row { display: flex; gap: 30px; margin-bottom: 24px; }
+    .sig-field { flex: 1; }
+    .sig-label { font-size: 8pt; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .sig-line { border-bottom: 1px solid var(--text-primary); height: 30px; }
+
+    /* Footer */
+    .doc-footer {
+      margin-top: 40px; padding-top: 12px;
+      border-top: 2px solid var(--olf-blue);
+      text-align: center; font-size: 8.5pt; color: var(--text-secondary); line-height: 1.7;
+    }
+    .doc-footer strong { color: var(--olf-blue-dark); }
+
+    .bold { font-weight: 600; }
+
+    .print-btn {
+      position: fixed; bottom: 30px; right: 30px;
+      background: var(--olf-blue); color: #fff; border: none;
+      padding: 10px 24px; font-size: 10.5pt; font-weight: 600;
+      border-radius: 8px; cursor: pointer; font-family: inherit;
+      box-shadow: 0 4px 12px rgba(48, 158, 221, 0.35);
+    }
+    .print-btn:hover { background: var(--olf-blue-dark); }
+  </style>
+</head>
+<body>
+
+  <button class="print-btn no-print" onclick="window.print()">Print / Save as PDF</button>
+
+  <!-- HEADER -->
+  <div class="doc-header">
+    <img src="public/logo.png" alt="One Life Foundation Logo">
+    <div class="doc-header-right">
+      <div class="company-name">One Life Foundation</div>
+      <div class="company-tagline">NDIS Registered Provider &bull; ABN 55 643 227 061</div>
+    </div>
+  </div>
+
+  <!-- TITLE -->
+  <div class="doc-title-block">
+    <div class="doc-title">Medium Term Accommodation (MTA)<br>Service Agreement</div>
+    <div class="doc-subtitle">NDIS Funded &nbsp;|&nbsp; Core Supports — Assistance with Daily Living</div>
+  </div>
+
+  <table>
+    <tr><th>Document Version</th><td>1.0</td></tr>
+    <tr><th>Date of Issue</th><td class="ph"></td></tr>
+    <tr><th>Agreement Reference</th><td class="ph"></td></tr>
+  </table>
+
+  <!-- 1. PARTIES -->
+  <h2><span class="section-num">1</span> Parties to This Agreement</h2>
+
+  <h3>MTA Support Provider</h3>
+  <table>
+    <tr><th>Provider Name</th><td>One Life Foundation Pty Ltd</td></tr>
+    <tr><th>ABN</th><td>55 643 227 061</td></tr>
+    <tr><th>NDIS Registration No.</th><td>405 012 0437</td></tr>
+    <tr><th>Address</th><td class="ph"></td></tr>
+    <tr><th>Phone</th><td class="ph"></td></tr>
+    <tr><th>Email</th><td>support@olfndisservices.com.au</td></tr>
+  </table>
+
+  <h3>Participant</h3>
+  <table>
+    <tr><th>Full Name</th><td class="ph"></td></tr>
+    <tr><th>Date of Birth</th><td class="ph"></td></tr>
+    <tr><th>NDIS Number</th><td class="ph"></td></tr>
+    <tr><th>Phone</th><td class="ph"></td></tr>
+    <tr><th>Preferred Language</th><td class="ph"></td></tr>
+    <tr><th>Communication Needs</th><td class="ph"></td></tr>
+    <tr><th>Emergency Contact</th><td class="ph"></td></tr>
+  </table>
+
+  <h3>Authorised Representative / Nominee (if applicable)</h3>
+  <table>
+    <tr><th>Full Name</th><td class="ph"></td></tr>
+    <tr><th>Relationship</th><td class="ph"></td></tr>
+    <tr><th>Authority Type</th><td class="ph"></td></tr>
+    <tr><th>Phone / Email</th><td class="ph"></td></tr>
+  </table>
+
+  <h3>Plan Management &amp; Coordination</h3>
+  <table>
+    <tr><th>Plan Management Type</th><td class="ph"></td></tr>
+    <tr><th>Plan Manager</th><td class="ph"></td></tr>
+    <tr><th>Support Coordinator</th><td class="ph"></td></tr>
+  </table>
+
+  <h3>SDA Provider (Accommodation)</h3>
+  <p>This agreement covers <strong>SIL supports only</strong> for the duration of the participant's MTA stay. The accommodation (SDA/MTA property) is managed by a separate provider under a separate agreement.</p>
+  <table>
+    <tr><th>SDA/MTA Property Provider</th><td class="ph"></td></tr>
+    <tr><th>Property Address</th><td class="ph"></td></tr>
+    <tr><th>Property Provider Contact</th><td class="ph"></td></tr>
+  </table>
+
+  <!-- 2. PURPOSE -->
+  <h2><span class="section-num">2</span> Purpose and Goals</h2>
+  <p>This agreement sets out the terms under which One Life Foundation will deliver Supported Independent Living (SIL) supports to the participant during their Medium Term Accommodation (MTA) placement (up to 90 days). MTA is transitional accommodation funded under the participant's NDIS plan while a longer-term housing solution is identified.</p>
+  <p>One Life Foundation is the SIL provider — responsible for delivering daily support services within the MTA property. The property itself is managed by a separate SDA/MTA provider under a separate agreement.</p>
+
+  <h3>Participant's NDIS Plan Goals</h3>
+  <table>
+    <tr><th>Goal 1</th><td class="ph"></td></tr>
+    <tr><th>Goal 2</th><td class="ph"></td></tr>
+    <tr><th>Goal 3</th><td class="ph"></td></tr>
+  </table>
+
+  <!-- 3. AGREEMENT PERIOD -->
+  <h2><span class="section-num">3</span> Agreement Period</h2>
+  <table>
+    <tr><th>Start Date</th><td class="ph"></td></tr>
+    <tr><th>End Date (max. 90 days)</th><td class="ph"></td></tr>
+    <tr><th>Total Duration</th><td class="ph"></td></tr>
+  </table>
+  <p>This agreement covers the MTA period (up to 90 days). If an extension beyond 90 days is required, it must be approved by the NDIA through a plan review. One Life Foundation will support the participant to request an extension if needed. The agreement may also end earlier if the participant transitions to longer-term accommodation.</p>
+
+  <!-- 4. SCHEDULE OF SUPPORTS -->
+  <h2><span class="section-num">4</span> Schedule of Supports</h2>
+  <p>A detailed Schedule of Supports is maintained as a separate document (Attachment A) and forms part of this agreement. It includes specific support items, line item numbers, frequencies, and delivery details. The schedule below provides a summary of the types of supports delivered during the MTA placement.</p>
+
+  <h3>Supports Included</h3>
+  <ul>
+    <li>Personal care (showering, toileting, grooming, dressing, oral hygiene).</li>
+    <li>Daily living tasks (meal preparation, cleaning, laundry, household tasks).</li>
+    <li>Overnight support (active night or sleepover as per assessed needs).</li>
+    <li>Medication prompting and/or administration as per medication management plan.</li>
+    <li>Skill building and capacity development to increase independence.</li>
+    <li>Health and wellbeing support (appointments, exercise, health monitoring).</li>
+    <li>Community access, social participation, and relationship building.</li>
+    <li>Communication and decision-making support.</li>
+    <li>Behaviour support plan implementation (if applicable).</li>
+    <li>Emergency response and on-call support.</li>
+    <li>Coordination with the MTA/SDA property provider and other service providers.</li>
+    <li>Transition planning support towards longer-term accommodation.</li>
+  </ul>
+
+  <h3>Supports Not Included</h3>
+  <ul>
+    <li>Accommodation, property management, or tenancy matters (managed by the MTA/SDA property provider).</li>
+    <li>Property maintenance, repairs, or utilities (property provider / participant responsibility).</li>
+    <li>Transport not directly related to support delivery (funded separately).</li>
+    <li>Allied health services (funded separately).</li>
+    <li>Support coordination (funded separately).</li>
+  </ul>
+
+  <p>Workers with the same qualifications and experience will be assigned as a delegate to ensure the same level of support is provided and adequate training will be provided to them.</p>
+
+  <!-- 5. FEES AND FUNDING -->
+  <div class="page-break"></div>
+  <h2><span class="section-num">5</span> Fees and Funding</h2>
+  <table>
+    <tr><th>Support Category</th><td>Core Supports — Assistance with Daily Living</td></tr>
+    <tr><th>Support Item Number(s)</th><td class="ph"></td></tr>
+    <tr><th>Billing Frequency</th><td class="ph"></td></tr>
+    <tr><th>Plan Management Type</th><td class="ph"></td></tr>
+  </table>
+  <p>All supports under this agreement are charged in accordance with the current NDIS Pricing Arrangements and Price Limits. Applicable rates are published in the NDIS Price Guide and may be updated from time to time by the NDIA. A detailed Schedule of Supports outlining specific support items, quantities, and corresponding line item numbers is maintained as a separate document (see Attachment A) and forms part of this agreement.</p>
+  <ul>
+    <li>One Life Foundation will not charge above the NDIS Price Limit for any support item.</li>
+    <li>No gap fees, hidden charges, credit card surcharges, or administration fees beyond the NDIS-funded rate.</li>
+    <li>At least 14 days' written notice will be provided before any price change resulting from NDIS Price Guide updates.</li>
+    <li>One Life Foundation will not charge for supports not delivered.</li>
+    <li>Claims will only be made for supports delivered in accordance with this agreement.</li>
+    <li>NDIS supports are GST-free per the A New Tax System (Goods and Services Tax) Act 1999.</li>
+  </ul>
+  <h3>Travel Costs</h3>
+  <p>In some circumstances, One Life Foundation may charge a fee for transport or travel costs associated with the delivery of supports.</p>
+  <table>
+    <tr><th>I agree that travel costs could be claimed</th><td class="ph" style="min-width:120px;">Yes &nbsp; &nbsp; / &nbsp; &nbsp; No</td></tr>
+  </table>
+
+  <h3>Payment</h3>
+  <p>For self-managed or nominee-managed participants, fees are payable at the time of service. For all other plan types, invoices are to be paid within 7 days. One Life Foundation accepts payment via cash, BPAY, direct debit, or bank transfer.</p>
+  <p>If the incurred cost is not covered by the NDIS Plan due to lack of funds or lack of support category, the participant is liable for the charges.</p>
+  <table>
+    <tr><th>Nominated Fund Manager</th><td class="ph"></td></tr>
+  </table>
+  <p>For NDIA-managed plans, claims are made through the NDIS portal. For plan-managed, invoices go to the plan manager. For self-managed, invoices and supporting documentation go directly to the participant. If MTA/SIL funding is approaching exhaustion, One Life Foundation will notify the participant and support coordinator at least 14 days in advance.</p>
+
+  <!-- 6. PROVIDER OBLIGATIONS -->
+  <h2><span class="section-num">6</span> Provider Obligations</h2>
+  <ul>
+    <li>Deliver supports in a person-centred, safe, and competent manner.</li>
+    <li>Comply with the NDIS Act 2013 (Cth), NDIS Practice Standards, and NDIS Code of Conduct.</li>
+    <li>Maintain current NDIS registration for the duration of this agreement.</li>
+    <li>Ensure all workers hold a current NDIS Worker Screening Check clearance.</li>
+    <li>Ensure workers are trained in disability support, manual handling, first aid, medication management, and any participant-specific requirements.</li>
+    <li>Introduce new support workers to the participant before unsupervised shifts where practicable.</li>
+    <li>Maintain Public Liability Insurance (min. $20M), Professional Indemnity Insurance, and Workers Compensation Insurance. Certificates available on request.</li>
+    <li>Cooperate and coordinate with the MTA/SDA property provider to ensure seamless service delivery.</li>
+    <li>Comply with the Privacy Act 1988 (Cth) and Australian Privacy Principles.</li>
+    <li>Develop and maintain an individual support plan, reviewed at least every 3 months.</li>
+  </ul>
+
+  <!-- 7. NDIS CODE OF CONDUCT -->
+  <h2><span class="section-num">7</span> NDIS Code of Conduct</h2>
+  <p>One Life Foundation and all workers are bound by the NDIS Code of Conduct (National Disability Insurance Scheme (Code of Conduct) Rules 2018). We will:</p>
+  <ol>
+    <li>Act with respect for individual rights to freedom of expression, self-determination, and decision-making.</li>
+    <li>Respect the privacy of people with disability.</li>
+    <li>Provide supports in a safe and competent manner, with care and skill.</li>
+    <li>Act with integrity, honesty, and transparency.</li>
+    <li>Promptly raise and act on concerns about quality and safety of supports.</li>
+    <li>Take all reasonable steps to prevent and respond to violence, exploitation, neglect, and abuse.</li>
+    <li>Take all reasonable steps to prevent and respond to sexual misconduct.</li>
+  </ol>
+  <p>Code of Conduct concerns can be raised with One Life Foundation or the NDIS Commission on 1800 035 544.</p>
+
+  <!-- 8. PARTICIPANT RIGHTS -->
+  <h2><span class="section-num">8</span> Participant Rights</h2>
+  <p>As set out in the NDIS Act 2013 and the UN Convention on the Rights of Persons with Disabilities:</p>
+  <ul>
+    <li>Be treated with dignity, respect, and fairness at all times.</li>
+    <li>Exercise informed choice and control over your supports.</li>
+    <li>Dignity of risk — make your own choices even when others may disagree.</li>
+    <li>Privacy and confidentiality of your personal information.</li>
+    <li>Services free from violence, abuse, neglect, exploitation, and discrimination.</li>
+    <li>Access an advocate or support person at any time.</li>
+    <li>Choose and change your support provider at any time without penalty.</li>
+    <li>Have your cultural identity, values, and beliefs respected.</li>
+    <li>Be supported to understand this agreement in your preferred format.</li>
+    <li>Give feedback or complain without fear of reprisal.</li>
+    <li>Be involved in decisions about your roster, staffing, and supports.</li>
+  </ul>
+
+  <!-- 9. PARTICIPANT RESPONSIBILITIES -->
+  <h2><span class="section-num">9</span> Participant Responsibilities</h2>
+  <ul>
+    <li>Treat support workers and other residents with respect.</li>
+    <li>Provide accurate information relevant to the delivery of supports.</li>
+    <li>Notify One Life Foundation of changes to your NDIS plan or personal circumstances.</li>
+    <li>Give reasonable notice of absences (holidays, hospital stays) for roster adjustments.</li>
+    <li>Participate in the development and review of your support plan and goals.</li>
+    <li>Raise concerns about supports, staff, or quality with One Life Foundation.</li>
+    <li>Comply with property rules set by the MTA/SDA property provider.</li>
+  </ul>
+
+  <!-- 10. SERVICE SCHEDULE CONFIRMATION -->
+  <h2><span class="section-num">10</span> Service Schedule Confirmation</h2>
+  <p>One Life Foundation endeavours to confirm service schedules by email or SMS. However, it is the participant's responsibility to be aware of their scheduled services and to notify One Life Foundation of any changes as soon as practicable.</p>
+
+  <!-- 11. SECTION 73G — HIGH-RISK PARTICIPANTS -->
+  <h2><span class="section-num">11</span> Section 73G of the NDIS Act</h2>
+  <table>
+    <tr><th>Is this participant subject to Section 73G?</th><td class="ph" style="min-width:120px;">Yes &nbsp; &nbsp; / &nbsp; &nbsp; No</td></tr>
+  </table>
+  <p><em>Note: Section 73G of the NDIS Act refers to a participant who is provided with personal support in their own home and may experience a level of risk if the same individual NDIS worker provides that support for an extended period. This risk is likely to be greater where the participant lives alone.</em></p>
+  <p>For participants subject to this requirement, One Life Foundation will:</p>
+  <ul>
+    <li>Document the assessment of the participant's risk factor using the Initial Assessment and Support Plan, Participant Disaster and Risk Assessment, and Participant Home Risk Assessment.</li>
+    <li>Provide a copy of all assessments to the participant (unless they opt out) and retain a copy on file.</li>
+    <li>Review the assessment annually or when the participant's circumstances change.</li>
+    <li>Register the participant on the High-Risk Participant Register and delegate specific support workers accordingly.</li>
+    <li>Ensure the Operations Manager reviews service implementation every 3 months by someone other than the support workers.</li>
+    <li>Conduct face-to-face welfare checks at the participant's home (without the support worker present) to verify performance, safety, and wellbeing.</li>
+  </ul>
+
+  <table style="font-size:9pt;">
+    <tr><th style="width:25%;">Risk Level</th><th style="width:25%; background:var(--olf-blue);">In-Person Welfare Check</th><th style="width:25%; background:var(--olf-blue);">Phone Welfare Check</th><th style="width:25%; background:var(--olf-blue);">Feedback Survey</th></tr>
+    <tr><td>Low Risk</td><td>Every 3–4 months</td><td>Monthly</td><td>Quarterly</td></tr>
+    <tr><td>Medium Risk</td><td>Every 1–3 months</td><td>Fortnightly</td><td>Quarterly</td></tr>
+    <tr><td>High Risk</td><td>Every 2–4 weeks</td><td>Weekly</td><td>Quarterly</td></tr>
+  </table>
+
+  <table>
+    <tr><th>Is this participant non-verbal or requires language translation?</th><td class="ph" style="min-width:120px;">Yes &nbsp; &nbsp; / &nbsp; &nbsp; No</td></tr>
+  </table>
+  <p><em>If yes, refer to the Mode of Communication section on the Participant Disaster and Risk Assessment.</em></p>
+
+  <!-- 12. EMERGENCY PREPAREDNESS -->
+  <h2><span class="section-num">12</span> Emergency Preparedness</h2>
+  <p>One Life Foundation will develop an emergency response plan to respond to any unplanned event that may cause death, significant injury, disruption to operations, or physical/environmental damage.</p>
+  <p>The Operations Manager or Supervisor will ensure that:</p>
+  <ul>
+    <li>An Emergency Evacuation diagram is available for each site.</li>
+    <li>An Individual Disaster Management Plan is created for each participant using the Participant Disaster and Risk Assessment.</li>
+    <li>All support workers are trained on emergency response procedures.</li>
+    <li>Support workers receive a copy of the participant's individual disaster management plan so they are fully aware of the participant's health condition and required action plans.</li>
+  </ul>
+
+  <p>The table below outlines the support provided to participants during and after emergencies. For more information, refer to the Emergency Response Plan and Participant Disaster and Risk Assessment.</p>
+  <table style="font-size:9pt;">
+    <tr><th style="width:25%; background:var(--olf-blue);">Emergency Type</th><th style="width:37.5%; background:var(--olf-blue);">Support DURING Emergency</th><th style="width:37.5%; background:var(--olf-blue);">Support AFTER Emergency</th></tr>
+    <tr><td style="height:40px;"></td><td></td><td></td></tr>
+    <tr><td style="height:40px;"></td><td></td><td></td></tr>
+    <tr><td style="height:40px;"></td><td></td><td></td></tr>
+    <tr><td style="height:40px;"></td><td></td><td></td></tr>
+  </table>
+
+  <!-- 13. CANCELLATION POLICY -->
+  <div class="page-break"></div>
+  <h2><span class="section-num">13</span> Cancellation and Short Notice Policy</h2>
+  <p>In accordance with the NDIS Pricing Arrangements and Price Limits:</p>
+  <ul>
+    <li>Cancellations with 2+ clear business days' notice — no cancellation fee.</li>
+    <li>Short notice (less than 2 clear business days) or no-show — up to 100% of the agreed fee may be charged.</li>
+    <li>One Life Foundation will attempt to reallocate the worker before charging a cancellation fee.</li>
+    <li>No cancellation fee where the cancellation is due to circumstances beyond the participant's control (e.g. hospitalisation).</li>
+    <li>If One Life Foundation cancels a support (e.g. staff illness), a replacement will be arranged where possible and no charge will apply for undelivered supports.</li>
+  </ul>
+  <p>The participant confirms these cancellation terms were explained before signing.</p>
+
+  <!-- 14. INCIDENT MANAGEMENT -->
+  <h2><span class="section-num">14</span> Incident Management</h2>
+  <p>One Life Foundation manages incidents in accordance with the NDIS (Incident Management and Reportable Incidents) Rules 2018:</p>
+  <ul>
+    <li>All incidents are reported, recorded, investigated, and reviewed.</li>
+    <li>The participant will be notified of any incident that affects them.</li>
+    <li>Reportable incidents (death, serious injury, abuse/neglect, sexual misconduct, unauthorised restrictive practices) are reported to the NDIS Commission within 24 hours.</li>
+  </ul>
+  <h3>Restrictive Practices</h3>
+  <p>One Life Foundation does not use unauthorised restrictive practices. Where a Behaviour Support Plan includes regulated restrictive practices, these must be authorised through the relevant state process, documented in a current BSP by a registered practitioner, implemented only by trained staff, and reviewed regularly with the goal of reduction and elimination.</p>
+
+  <!-- 15. COMPLAINTS AND DISPUTES -->
+  <h2><span class="section-num">15</span> Complaints, Feedback, and Disputes</h2>
+  <p>Making a complaint will not affect your supports or this agreement. To raise a concern:</p>
+  <ul>
+    <li><strong>Step 1:</strong> Raise the matter with your support worker or team leader.</li>
+    <li><strong>Step 2:</strong> If unresolved, formal complaint to (04) 5222 7799 or support@olfndisservices.com.au.</li>
+    <li><strong>Step 3:</strong> Acknowledged within 2 business days, resolved within 14 business days.</li>
+    <li><strong>Step 4:</strong> If unsatisfied, escalate to the NDIS Commission (1800 035 544) or NSW Ombudsman (1800 451 524).</li>
+  </ul>
+  <p>The participant may involve an independent advocate at any time via disabilityadvocacyfinder.dss.gov.au or 1800 800 110.</p>
+  <h3>Dispute Resolution</h3>
+  <ul>
+    <li>Direct negotiation within 7 business days.</li>
+    <li>Mediation by an independent mediator if unresolved.</li>
+    <li>Referral to the NDIS Commission if still unresolved.</li>
+  </ul>
+  <p>Supports continue during disputes unless there is an immediate safety risk.</p>
+
+  <!-- 16. PRIVACY -->
+  <h2><span class="section-num">16</span> Privacy and Confidentiality</h2>
+  <p>One Life Foundation manages personal information in accordance with the Privacy Act 1988 (Cth) and Australian Privacy Principles.</p>
+  <ul>
+    <li>Information is collected only as necessary and stored securely.</li>
+    <li>Information is not shared without written consent, except where required by law, to prevent serious harm, for NDIS Commission reporting, or for NDIA claims.</li>
+    <li>You may access and correct your personal information at any time.</li>
+    <li>Data breaches are reported to affected individuals and the OAIC under the Notifiable Data Breaches scheme.</li>
+    <li>Confidentiality obligations survive termination of this agreement.</li>
+    <li>Personal information will be retained for 7 years in accordance with legal requirements.</li>
+    <li>Workers will provide progress reports to the participant and NDIA outlining plan objectives, goals, and whether those are being met.</li>
+  </ul>
+
+  <h3>Consent to Share Information</h3>
+  <table>
+    <tr><th>NDIA / Plan Manager</th><td class="ph"></td></tr>
+    <tr><th>Support Coordinator</th><td class="ph"></td></tr>
+    <tr><th>MTA/SDA Property Provider</th><td class="ph"></td></tr>
+    <tr><th>Other Providers</th><td class="ph"></td></tr>
+    <tr><th>Emergency Services</th><td>Yes (where required)</td></tr>
+    <tr><th>Medical Practitioners</th><td class="ph"></td></tr>
+    <tr><th>Behaviour Support Practitioner</th><td class="ph"></td></tr>
+  </table>
+  <p>Consent may be withdrawn at any time by notifying One Life Foundation in writing.</p>
+
+  <!-- 17. TERMINATION -->
+  <div class="page-break"></div>
+  <h2><span class="section-num">17</span> Termination and Transition</h2>
+
+  <h3>Participant-Initiated</h3>
+  <ul>
+    <li>End this agreement at any time with no more than 14 days' notice. No exit fees.</li>
+    <li>Right to change support provider at any time without penalty.</li>
+  </ul>
+
+  <h3>Provider-Initiated</h3>
+  <p>One Life Foundation may terminate with minimum 14 days' notice if:</p>
+  <ul>
+    <li>Serious or repeated breach of participant responsibilities that cannot be resolved.</li>
+    <li>Immediate and ongoing safety risk to workers, residents, or the participant.</li>
+    <li>NDIS funding is exhausted, withdrawn, or not renewed.</li>
+    <li>The participant transitions to longer-term accommodation or vacates the MTA property.</li>
+    <li>The MTA period (90 days) expires and no extension has been approved by the NDIA.</li>
+  </ul>
+
+  <h3>Continuity of Supports</h3>
+  <ul>
+    <li>Supports continue during the notice period.</li>
+    <li>With consent, a comprehensive handover is provided to the incoming provider.</li>
+    <li>Claims cease after the termination date.</li>
+    <li>Records are retained securely per legal requirements.</li>
+  </ul>
+  <p>One Life Foundation will not cease supports abruptly without ensuring the participant's safety.</p>
+
+  <!-- 18. CHANGES TO THIS AGREEMENT -->
+  <h2><span class="section-num">18</span> Changes to This Agreement</h2>
+  <p>If the participant or One Life Foundation wants to change this agreement, any changes must be discussed, agreed to in writing, dated, and signed by both parties. At least 14 days' written notice will be provided for any proposed changes to fees, supports, or terms.</p>
+
+  <!-- 19. REVIEW AND VARIATION -->
+  <h2><span class="section-num">19</span> Review and Variation</h2>
+  <ul>
+    <li>Agreement reviewed at least annually, or when the NDIS plan is reviewed — whichever is earlier.</li>
+    <li>Individual support plan reviewed at least every 3 months.</li>
+    <li>At least 14 days' written notice for any proposed changes to fees, supports, or terms.</li>
+    <li>Changes require written agreement from both parties.</li>
+  </ul>
+
+  <!-- 20. INFORMED CONSENT -->
+  <h2><span class="section-num">20</span> Informed Consent</h2>
+  <p>By signing, the participant (or representative) confirms:</p>
+  <ul>
+    <li>This agreement has been explained in a way they understand.</li>
+    <li>They have had the opportunity to ask questions and seek independent advice.</li>
+    <li>They understand the supports, costs, rights, and responsibilities.</li>
+    <li>An easy-read version has been offered (available on request).</li>
+    <li>They consent to supports being delivered by One Life Foundation during the MTA placement.</li>
+    <li>They may withdraw consent and end this agreement at any time.</li>
+  </ul>
+
+  <h3>Cooling-Off Period</h3>
+  <p>The participant has a 7-day cooling-off period from signing. During this period, the agreement may be cancelled without penalty. After this, the standard termination provisions in Section 17 apply.</p>
+
+  <table>
+    <tr><th>Consent Method</th><td class="ph"></td></tr>
+    <tr><th>Easy-Read Offered</th><td class="ph"></td></tr>
+    <tr><th>Interpreter Required</th><td class="ph"></td></tr>
+    <tr><th>Advocate Present</th><td class="ph"></td></tr>
+  </table>
+
+  <!-- 21. GOVERNING LAW -->
+  <h2><span class="section-num">21</span> Governing Law</h2>
+  <p>This agreement is governed by:</p>
+  <ul>
+    <li>National Disability Insurance Scheme Act 2013 (Cth)</li>
+    <li>NDIS (Provider Registration and Practice Standards) Rules 2018</li>
+    <li>NDIS (Code of Conduct) Rules 2018</li>
+    <li>NDIS (Incident Management and Reportable Incidents) Rules 2018</li>
+    <li>NDIS (Restrictive Practices and Behaviour Support) Rules 2018</li>
+    <li>NDIS Pricing Arrangements and Price Limits (current edition)</li>
+    <li>Privacy Act 1988 (Cth) and Australian Privacy Principles</li>
+    <li>Australian Consumer Law (Competition and Consumer Act 2010)</li>
+    <li>Applicable New South Wales legislation</li>
+  </ul>
+  <p>Where this agreement conflicts with the NDIS Act or Rules, the Act and Rules prevail.</p>
+
+  <!-- 22. SIGNATURES -->
+  <div class="page-break"></div>
+  <h2><span class="section-num">22</span> Agreement and Signatures</h2>
+  <p>The participant and the service provider agree to the terms set out above.</p>
+  <table>
+    <tr><th>Option 1</th><td>I wish to receive a copy of this agreement. &nbsp; &nbsp; ☐</td></tr>
+    <tr><th>Option 2</th><td>I wish to not receive a copy of this agreement. &nbsp; &nbsp; ☐</td></tr>
+  </table>
+
+  <div class="signature-block">
+    <h3>Participant / Authorised Representative</h3>
+    <div class="sig-row">
+      <div class="sig-field"><div class="sig-label">Full Name</div><div class="sig-line"></div></div>
+      <div class="sig-field"><div class="sig-label">Signature</div><div class="sig-line"></div></div>
+      <div class="sig-field"><div class="sig-label">Date</div><div class="sig-line"></div></div>
+    </div>
+
+    <h3>One Life Foundation Representative</h3>
+    <div class="sig-row">
+      <div class="sig-field"><div class="sig-label">Full Name</div><div class="sig-line"></div></div>
+      <div class="sig-field"><div class="sig-label">Signature</div><div class="sig-line"></div></div>
+      <div class="sig-field"><div class="sig-label">Date</div><div class="sig-line"></div></div>
+    </div>
+
+    <h3>Witness (if required)</h3>
+    <div class="sig-row">
+      <div class="sig-field"><div class="sig-label">Witness Name</div><div class="sig-line"></div></div>
+      <div class="sig-field"><div class="sig-label">Signature</div><div class="sig-line"></div></div>
+      <div class="sig-field"><div class="sig-label">Date</div><div class="sig-line"></div></div>
+    </div>
+
+    <h3>Acknowledgment of Receipt</h3>
+    <p>I confirm that I have received a signed copy of this Service Agreement, including all attachments.</p>
+    <div class="sig-row">
+      <div class="sig-field"><div class="sig-label">Participant Name</div><div class="sig-line"></div></div>
+      <div class="sig-field"><div class="sig-label">Signature</div><div class="sig-line"></div></div>
+      <div class="sig-field"><div class="sig-label">Date</div><div class="sig-line"></div></div>
+    </div>
+  </div>
+
+  <!-- ATTACHMENTS -->
+  <h2>Attachments</h2>
+  <ul>
+    <li><strong>A:</strong> Support Roster / Schedule of Supports</li>
+    <li><strong>B:</strong> Individual Support Plan</li>
+    <li><strong>C:</strong> NDIS Plan Goals Summary</li>
+    <li><strong>D:</strong> Consent to Share Information Form</li>
+    <li><strong>E:</strong> Behaviour Support Plan (if applicable)</li>
+    <li><strong>F:</strong> Medication Management Plan (if applicable)</li>
+    <li><strong>G:</strong> Complaints and Feedback Policy</li>
+    <li><strong>H:</strong> Privacy Policy</li>
+    <li><strong>I:</strong> NDIS Code of Conduct Summary</li>
+    <li><strong>J:</strong> Emergency Response Plan</li>
+    <li><strong>K:</strong> Participant Disaster and Risk Assessment</li>
+    <li><strong>L:</strong> Participant Home Risk Assessment (if applicable)</li>
+    <li><strong>M:</strong> Easy-Read Version (if applicable)</li>
+  </ul>
+  <p>Attachments not provided at signing will be delivered within 7 business days of commencement.</p>
+
+  <p style="margin-top: 16px; font-style: italic; color: var(--text-secondary); font-size: 9.5pt;">This agreement is governed by applicable Australian laws and NDIS regulations.</p>
+
+  <!-- FOOTER -->
+  <div class="doc-footer">
+    <strong>One Life Foundation Pty Ltd</strong> &nbsp;|&nbsp; ABN 55 643 227 061 &nbsp;|&nbsp; NDIS Registered Provider<br>
+    support@olfndisservices.com.au &nbsp;|&nbsp; www.olfndisservices.com.au
+  </div>
+
+</body>
+</html>

@@ -65,7 +65,7 @@ export default function UploadStaffDocModal({ isOpen, onClose, staffId, preselec
       );
       onUploaded?.();
     } catch (err) {
-      setError(err.message);
+      setError(typeof err === 'string' ? err : err?.message || String(err));
     } finally {
       setUploading(false);
     }
@@ -82,22 +82,14 @@ export default function UploadStaffDocModal({ isOpen, onClose, staffId, preselec
             {allowCustomType ? (
               <div>
                 <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Document Type <span className="text-red-500">*</span></label>
-                <select value={docType} onChange={(e) => setDocType(e.target.value)}>
-                  <option value="__custom">Custom label...</option>
-                  <optgroup label="Standard Types">
-                    {STAFF_DOCUMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </optgroup>
-                </select>
-                {docType === '__custom' && (
-                  <input
-                    type="text"
-                    value={customType}
-                    onChange={(e) => setCustomType(e.target.value)}
-                    placeholder="e.g. Training Certificate, Performance Review"
-                    className="mt-3"
-                    required
-                  />
-                )}
+                <input
+                  type="text"
+                  value={customType}
+                  onChange={(e) => { setCustomType(e.target.value); setDocType('__custom'); }}
+                  placeholder="e.g. Training Certificate, ABN, Performance Review"
+                  required
+                />
+                <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">Enter a label for this file (e.g. Training Certificate, ABN)</p>
               </div>
             ) : (
               <div>
@@ -142,7 +134,7 @@ export default function UploadStaffDocModal({ isOpen, onClose, staffId, preselec
                     <p className="mt-1 text-xs text-slate-400">PDF, images, Word documents, etc.</p>
                   </>
                 )}
-                <input ref={fileInputRef} type="file" onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); }} className="hidden" />
+                <input ref={fileInputRef} type="file" onClick={(e) => e.stopPropagation()} onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); e.target.value = ''; }} className="hidden" />
               </div>
             </div>
 

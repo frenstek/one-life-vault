@@ -10,16 +10,17 @@ import {
   HiArrowRightOnRectangle,
   HiSun,
   HiMoon,
+  HiChatBubbleLeftRight,
 } from 'react-icons/hi2';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
-export default function Header({ onMenuToggle, onUpload }) {
+export default function Header({ onMenuToggle, onUpload, chatOpen, onChatToggle }) {
   const [query, setQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
-  const { profile, logout } = useAuth();
+  const { profile, logout, hasRole } = useAuth();
   const { dark, toggle } = useTheme();
 
   const displayName = profile?.full_name || profile?.email || 'Admin';
@@ -78,6 +79,15 @@ export default function Header({ onMenuToggle, onUpload }) {
         </div>
       </form>
 
+      {/* Team Chat toggle */}
+      <button
+        onClick={onChatToggle}
+        className={`relative rounded-lg p-2 transition-colors ${chatOpen ? 'bg-[#0ea03e]/10 text-[#0ea03e] dark:bg-[#0ea03e]/20' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1e2d4a] hover:text-slate-700 dark:hover:text-slate-200'}`}
+        aria-label="Toggle team chat"
+      >
+        <HiChatBubbleLeftRight className="h-5 w-5" />
+      </button>
+
       {/* Dark mode toggle */}
       <button
         onClick={toggle}
@@ -107,30 +117,45 @@ export default function Header({ onMenuToggle, onUpload }) {
         {menuOpen && (
           <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#162036] shadow-lg">
             <div className="border-b border-slate-100 dark:border-[#263554] px-4 py-3">
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{displayName}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{displayName}</p>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${
+                  profile?.role === 'admin'
+                    ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                    : profile?.role === 'manager'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}>
+                  {profile?.role || 'staff'}
+                </span>
+              </div>
               <p className="text-xs text-slate-400">{profile?.email || 'Manage your documents'}</p>
             </div>
             <div className="py-1">
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  onUpload?.();
-                }}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-[#1e2d4a]"
-              >
-                <HiArrowUpTray className="h-4 w-4 text-accent-500" />
-                Upload Document
-              </button>
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  navigate('/documents');
-                }}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-[#1e2d4a]"
-              >
-                <HiFolderOpen className="h-4 w-4 text-brand-500" />
-                Manage Documents
-              </button>
+              {hasRole(['admin', 'manager']) && (
+                <>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onUpload?.();
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-[#1e2d4a]"
+                  >
+                    <HiArrowUpTray className="h-4 w-4 text-accent-500" />
+                    Upload Document
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      navigate('/documents');
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-[#1e2d4a]"
+                  >
+                    <HiFolderOpen className="h-4 w-4 text-brand-500" />
+                    Manage Documents
+                  </button>
+                </>
+              )}
               <div className="my-1 border-t border-slate-100 dark:border-[#263554]" />
               <button
                 onClick={handleLogout}

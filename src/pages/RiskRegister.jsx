@@ -8,6 +8,7 @@ import {
   HiEye,
   HiTrash,
   HiCheckCircle,
+  HiArrowDownTray,
 } from 'react-icons/hi2';
 import {
   fetchRiskRegister,
@@ -36,6 +37,7 @@ import Modal, {
   ModalError,
 } from '../components/ui/Modal';
 import { SkeletonGrid, SkeletonStatCard } from '../components/ui/Skeleton';
+import { exportRegisterPdf } from '../lib/registerPdfExport';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -309,13 +311,37 @@ export default function RiskRegister() {
         title="Risk Register"
         subtitle="Identify, assess, and manage organisational risks"
         actions={
-          <button
-            onClick={() => openFormModal()}
-            className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-600"
-          >
-            <HiPlus className="h-4 w-4" />
-            Add Risk
-          </button>
+          <>
+            <button
+              onClick={() => exportRegisterPdf({
+                title: 'Risk Register',
+                columns: ['Title', 'Description', 'Category', 'Rating', 'Existing Controls', 'Additional Controls', 'Owner', 'Status'],
+                rows: filtered.map((r) => [
+                  r.title || '',
+                  r.description || '',
+                  CATEGORY_LABELS[r.category] || r.category || '',
+                  `${(r.risk_rating || '').toUpperCase()} (${LIKELIHOOD_LABELS[r.likelihood] || r.likelihood || ''} x ${CONSEQUENCE_LABELS[r.consequence] || r.consequence || ''})`,
+                  r.existing_controls || '',
+                  r.additional_controls || '',
+                  r.risk_owner || '',
+                  (r.status || '').charAt(0).toUpperCase() + (r.status || '').slice(1),
+                ]),
+                orientation: 'landscape',
+                filename: 'OLF-Risk-Register.pdf',
+              })}
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <HiArrowDownTray className="h-4 w-4" />
+              Export PDF
+            </button>
+            <button
+              onClick={() => openFormModal()}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-600"
+            >
+              <HiPlus className="h-4 w-4" />
+              Add Risk
+            </button>
+          </>
         }
       />
 

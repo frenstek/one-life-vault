@@ -14,8 +14,8 @@ const INITIAL = {
   postcode: '',
   property_type: 'SIL',
   capacity: '',
-  manager_name: '',
-  manager_phone: '',
+  property_manager: '',
+  contact_phone: '',
   notes: '',
 };
 
@@ -52,8 +52,8 @@ export default function AddPropertyModal({ isOpen, onClose, onCreated }) {
         postcode: form.postcode.trim() || undefined,
         property_type: form.property_type,
         capacity: form.capacity ? Number(form.capacity) : undefined,
-        manager_name: form.manager_name.trim() || undefined,
-        manager_phone: form.manager_phone.trim() || undefined,
+        property_manager: form.property_manager.trim() || undefined,
+        contact_phone: form.contact_phone.trim() || undefined,
         notes: form.notes.trim() || undefined,
       });
       onCreated?.();
@@ -106,11 +106,11 @@ export default function AddPropertyModal({ isOpen, onClose, onCreated }) {
             </div>
             <div>
               <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Property Manager</label>
-              <input type="text" value={form.manager_name} onChange={onChange('manager_name')} placeholder="Manager name" />
+              <input type="text" value={form.property_manager} onChange={onChange('property_manager')} placeholder="Manager name" />
             </div>
             <div>
               <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Contact Phone</label>
-              <input type="tel" value={form.manager_phone} onChange={onChange('manager_phone')} placeholder="0400 000 000" />
+              <input type="tel" value={form.contact_phone} onChange={onChange('contact_phone')} placeholder="0400 000 000" />
             </div>
             <div className="col-span-2">
               <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Notes</label>

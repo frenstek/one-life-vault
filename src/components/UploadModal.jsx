@@ -4,16 +4,16 @@ import {
   HiDocumentPlus,
   HiCheckCircle,
 } from 'react-icons/hi2';
-import { uploadDocument, CATEGORIES, formatFileSize } from '../lib/api';
+import { uploadDocument, CATEGORIES, SUBCATEGORIES, formatFileSize } from '../lib/api';
 import Modal, { ModalBody, ModalFooter, ModalError, ButtonPrimary, ButtonSecondary } from './ui/Modal';
 
 const ACCEPTED_TYPES = '.pdf,.docx,.doc,.xlsx,.xls,.pptx,.rtf,.txt,.csv';
-const MAX_SIZE = 4 * 1024 * 1024; // 4MB
+const MAX_SIZE = 25 * 1024 * 1024; // 25MB
 
-export default function UploadModal({ isOpen, onClose, onUploadComplete }) {
+export default function UploadModal({ isOpen, onClose, onUploadComplete, defaultCategory = '', defaultSubcategory = '', defaultFolder = '' }) {
   const [file, setFile] = useState(null);
-  const [category, setCategory] = useState('');
-  const [subcategory, setSubcategory] = useState('');
+  const [category, setCategory] = useState(defaultCategory);
+  const [subcategory, setSubcategory] = useState(defaultSubcategory);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -21,22 +21,25 @@ export default function UploadModal({ isOpen, onClose, onUploadComplete }) {
   const inputRef = useRef(null);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      setCategory(defaultCategory);
+      setSubcategory(defaultSubcategory);
+    } else {
       setFile(null);
-      setCategory('');
-      setSubcategory('');
+      setCategory(defaultCategory);
+      setSubcategory(defaultSubcategory);
       setUploading(false);
       setError(null);
       setSuccess(false);
       setDragOver(false);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultCategory, defaultSubcategory]);
 
   const handleFile = useCallback((f) => {
     setError(null);
     setSuccess(false);
     if (f.size > MAX_SIZE) {
-      setError(`File too large (${formatFileSize(f.size)}). Maximum is 4MB.`);
+      setError(`File too large (${formatFileSize(f.size)}). Maximum is 25MB.`);
       return;
     }
     setFile(f);
@@ -63,7 +66,7 @@ export default function UploadModal({ isOpen, onClose, onUploadComplete }) {
         reader.readAsDataURL(file);
       });
 
-      await uploadDocument(file.name, base64, category, subcategory || undefined);
+      await uploadDocument(file.name, base64, category, subcategory || undefined, defaultFolder || undefined);
       setSuccess(true);
       setTimeout(() => {
         onUploadComplete?.();
@@ -120,26 +123,39 @@ export default function UploadModal({ isOpen, onClose, onUploadComplete }) {
                   Drag and drop a file here, or click to browse
                 </p>
                 <p className="mt-1 text-xs text-slate-400">
-                  PDF, Word, Excel, PowerPoint, RTF, TXT, CSV (max 4MB)
+                  PDF, Word, Excel, PowerPoint, RTF, TXT, CSV (max 25MB)
                 </p>
               </>
             )}
           </div>
 
-          {/* Category */}
+          {/* Category — locked when uploading inside a folder */}
           <div>
             <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Category <span className="text-red-500">*</span></label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="">Select a category</option>
-              {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-            </select>
+            {defaultFolder ? (
+              <div className="rounded-lg border border-slate-200 dark:border-[#334766] bg-slate-50 dark:bg-[#0a1628] px-3 py-2 text-sm text-slate-600 dark:text-slate-400">{category}</div>
+            ) : (
+              <select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(''); }}>
+                <option value="">Select a category</option>
+                {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+            )}
           </div>
 
-          {/* Subcategory */}
-          <div>
-            <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Subcategory <span className="text-xs text-slate-400">(optional)</span></label>
-            <input type="text" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} placeholder="e.g., Section 1, Part A" />
-          </div>
+          {/* Subcategory — locked when uploading inside a folder */}
+          {category && SUBCATEGORIES[category]?.length > 0 && (
+            <div>
+              <label className="mb-2.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Subcategory <span className="text-xs text-slate-400">(optional)</span></label>
+              {defaultFolder ? (
+                <div className="rounded-lg border border-slate-200 dark:border-[#334766] bg-slate-50 dark:bg-[#0a1628] px-3 py-2 text-sm text-slate-600 dark:text-slate-400">{subcategory || '—'}</div>
+              ) : (
+                <select value={subcategory} onChange={(e) => setSubcategory(e.target.value)}>
+                  <option value="">Select a subcategory</option>
+                  {SUBCATEGORIES[category].map((sub) => <option key={sub} value={sub}>{sub}</option>)}
+                </select>
+              )}
+            </div>
+          )}
 
           <ModalError message={error} />
 

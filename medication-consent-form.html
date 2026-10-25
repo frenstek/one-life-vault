@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One Life Foundation — Medication Consent Form</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --olf-blue: #309edd;
+      --olf-blue-dark: #1a7ab8;
+      --olf-green: #0ea03e;
+      --text-primary: #1a1a2e;
+      --text-secondary: #4a4a5a;
+      --border: #d0d5dd;
+    }
+
+    @page {
+      size: A4;
+      margin: 20mm 18mm;
+    }
+
+    @media print {
+      body { font-size: 10pt; padding: 0; }
+      .page-break { page-break-before: always; }
+      .no-print { display: none !important; }
+      h2 { page-break-after: avoid; }
+      table { page-break-inside: avoid; }
+      .signature-block { page-break-inside: avoid; }
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 11pt;
+      line-height: 1.65;
+      color: var(--text-primary);
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 40px;
+      background: #fff;
+    }
+
+    /* Header */
+    .doc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 3px solid var(--olf-blue);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+    }
+
+    .doc-header img {
+      height: 80px;
+      width: auto;
+    }
+
+    .doc-header-right {
+      text-align: right;
+    }
+
+    .doc-header-right .company-name {
+      font-size: 18pt;
+      font-weight: 700;
+      color: var(--olf-blue-dark);
+    }
+
+    .doc-header-right .company-details {
+      font-size: 8.5pt;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    /* Title */
+    .doc-title {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .doc-title h1 {
+      font-size: 16pt;
+      font-weight: 700;
+      color: var(--olf-blue-dark);
+      margin-bottom: 4px;
+    }
+
+    .doc-title .subtitle {
+      font-size: 9pt;
+      color: var(--text-secondary);
+    }
+
+    /* Section headings */
+    h2 {
+      font-size: 12pt;
+      font-weight: 700;
+      color: var(--olf-blue-dark);
+      margin: 24px 0 10px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid var(--olf-blue);
+    }
+
+    p {
+      margin-bottom: 10px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 10pt;
+    }
+
+    table th, table td {
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    table th {
+      background: var(--olf-blue);
+      color: #fff;
+      font-weight: 600;
+      font-size: 9pt;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    table td.label {
+      background: #f5f7fa;
+      font-weight: 600;
+      width: 200px;
+      white-space: nowrap;
+    }
+
+    table td.value {
+      min-height: 28px;
+    }
+
+    /* Checkbox */
+    .checkbox-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin: 6px 0 10px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10pt;
+    }
+
+    .checkbox-item .box {
+      width: 14px;
+      height: 14px;
+      border: 1.5px solid #999;
+      border-radius: 2px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    /* Lists */
+    ol, ul {
+      margin: 6px 0 12px 24px;
+      font-size: 10pt;
+    }
+
+    li {
+      margin-bottom: 6px;
+      line-height: 1.55;
+    }
+
+    /* Info box */
+    .info-box {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin: 12px 0 16px;
+      font-size: 9.5pt;
+      color: #1E40AF;
+      line-height: 1.6;
+    }
+
+    /* Warning box */
+    .warning-box {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin: 12px 0 16px;
+      font-size: 9.5pt;
+      color: #991B1B;
+      line-height: 1.6;
+    }
+
+    /* Signature block */
+    .signature-block {
+      margin-top: 24px;
+    }
+
+    .sig-row {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 20px;
+    }
+
+    .sig-field {
+      flex: 1;
+    }
+
+    .sig-field .sig-label {
+      font-size: 9pt;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .sig-line {
+      border-bottom: 1px solid #999;
+      height: 32px;
+    }
+
+    /* Field line */
+    .field {
+      border-bottom: 1px dotted #bbb;
+      display: inline-block;
+      min-width: 180px;
+      min-height: 18px;
+      vertical-align: bottom;
+    }
+
+    .field.short { min-width: 100px; }
+    .field.long { min-width: 300px; }
+
+    /* Footer */
+    .doc-footer {
+      margin-top: 40px;
+      padding-top: 12px;
+      border-top: 2px solid var(--olf-blue);
+      font-size: 8pt;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .doc-footer .version {
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="doc-header">
+    <img src="public/logo.png" alt="One Life Foundation Logo">
+    <div class="doc-header-right">
+      <div class="company-name">One Life Foundation</div>
+      <div class="company-details">
+        NDIS Registered Provider<br>
+        ABN: 31 672 507 547
+      </div>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <div class="doc-title">
+    <h1>Medication Consent Form</h1>
+    <div class="subtitle">Consent for medication assistance by One Life Foundation support workers</div>
+  </div>
+
+  <!-- Section 1: Participant Details -->
+  <h2>1. Participant Details</h2>
+  <table>
+    <tr>
+      <td class="label">Participant Name</td>
+      <td class="value"></td>
+      <td class="label">Date of Birth</td>
+      <td class="value"></td>
+    </tr>
+    <tr>
+      <td class="label">NDIS Number</td>
+      <td class="value"></td>
+      <td class="label">Phone</td>
+      <td class="value"></td>
+    </tr>
+    <tr>
+      <td class="label">Address</td>
+      <td class="value" colspan="3"></td>
+    </tr>
+    <tr>
+      <td class="label">Guardian / NOK Name</td>
+      <td class="value"></td>
+      <td class="label">Relationship</td>
+      <td class="value"></td>
+    </tr>
+    <tr>
+      <td class="label">Guardian / NOK Phone</td>
+      <td class="value" colspan="3"></td>
+    </tr>
+  </table>
+
+  <!-- Section 2: Consent Type -->
+  <h2>2. Type of Medication Support</h2>
+  <p style="font-size: 10pt;">I consent to One Life Foundation support workers providing the following medication assistance <em>(tick all that apply)</em>:</p>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> Verbal prompting / reminding to take medication</div>
+  </div>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> Physical assistance (e.g. opening Webster pack, pouring liquid medication)</div>
+  </div>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> Administering medication from a pre-packed Webster/Blister pack</div>
+  </div>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> Administering PRN (as needed) medication as per medical directions</div>
+  </div>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> Applying topical medication (creams, ointments, patches)</div>
+  </div>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> Administering eye / ear drops</div>
+  </div>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> Other: <span class="field long"></span></div>
+  </div>
+
+  <!-- Section 3: Medications Covered -->
+  <h2>3. Medications Covered by This Consent</h2>
+  <p style="font-size: 10pt;">This consent applies to all medications listed on the participant's current Medication Purpose Form and/or Webster pack, including any updates made by the prescribing doctor.</p>
+
+  <div class="info-box">
+    <strong>Note:</strong> A current Medication Purpose Form must be completed and kept on file alongside this consent. Any changes to medication must be updated on both forms and communicated to all support workers.
+  </div>
+
+  <!-- Section 4: Acknowledgements -->
+  <h2>4. Participant / Guardian Acknowledgement</h2>
+  <p style="font-size: 10pt;">By signing this form, I acknowledge and agree that:</p>
+  <ol>
+    <li>I have provided accurate information about the participant's medications, allergies, and medical conditions.</li>
+    <li>Support workers will only administer medications from a Webster/Blister pack or as specifically directed by a registered health professional.</li>
+    <li>Support workers are <strong>not</strong> qualified medical professionals and will not make clinical decisions regarding medication.</li>
+    <li>All medication administration will be recorded in the participant's progress notes and medication chart.</li>
+    <li>I will notify One Life Foundation immediately of any changes to the participant's medication, dosage, or medical condition.</li>
+    <li>I understand I may withdraw this consent at any time by providing written notice to One Life Foundation.</li>
+    <li>In the event of a medication error or adverse reaction, support workers will follow emergency procedures and notify the participant's GP and guardian/NOK immediately.</li>
+  </ol>
+
+  <!-- Section 5: Allergies -->
+  <h2>5. Known Allergies & Adverse Reactions</h2>
+  <div class="checkbox-row">
+    <div class="checkbox-item"><span class="box"></span> No Known Allergies (NKA)</div>
+    <div class="checkbox-item"><span class="box"></span> Allergies listed below</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Allergy / Substance</th>
+        <th>Reaction</th>
+        <th>Severity</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+
+  <!-- Section 6: Emergency Contact -->
+  <h2>6. Emergency Contacts</h2>
+  <table>
+    <tr>
+      <td class="label">GP / Prescribing Doctor</td>
+      <td class="value"></td>
+      <td class="label">GP Phone</td>
+      <td class="value"></td>
+    </tr>
+    <tr>
+      <td class="label">Pharmacy</td>
+      <td class="value"></td>
+      <td class="label">Pharmacy Phone</td>
+      <td class="value"></td>
+    </tr>
+    <tr>
+      <td class="label">Hospital / After Hours</td>
+      <td class="value"></td>
+      <td class="label">Phone</td>
+      <td class="value"></td>
+    </tr>
+  </table>
+
+  <div class="warning-box">
+    <strong>Emergency:</strong> In the event of a suspected overdose, severe allergic reaction (anaphylaxis), or any life-threatening situation, support workers must call <strong>000</strong> immediately, then notify the participant's GP and guardian/NOK.
+  </div>
+
+  <!-- Section 7: Consent Authorisation -->
+  <h2>7. Consent Authorisation</h2>
+  <p style="font-size: 10pt;">
+    I, the undersigned, consent to One Life Foundation support workers providing medication assistance as outlined in this form.
+    I understand the scope and limitations of this support and have had the opportunity to ask questions.
+  </p>
+
+  <div class="signature-block">
+    <div class="sig-row">
+      <div class="sig-field">
+        <div class="sig-label">Participant Name</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Signature</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Date</div>
+        <div class="sig-line"></div>
+      </div>
+    </div>
+    <div class="sig-row">
+      <div class="sig-field">
+        <div class="sig-label">Guardian / NOK Name</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Signature</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Date</div>
+        <div class="sig-line"></div>
+      </div>
+    </div>
+    <div class="sig-row">
+      <div class="sig-field">
+        <div class="sig-label">OLF Staff / Coordinator Name</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Signature</div>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-field">
+        <div class="sig-label">Date</div>
+        <div class="sig-line"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 8: Consent Review -->
+  <h2>8. Consent Review</h2>
+  <p style="font-size: 9.5pt;">This consent must be reviewed and re-signed at least every <strong>12 months</strong>, or whenever there is a significant change to the participant's medication or health status.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Review Date</th>
+        <th>Reviewed By</th>
+        <th>Changes Made</th>
+        <th>Signature</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <span>One Life Foundation | Medication Consent Form</span>
+    <span class="version">Version 1.0 — May 2026</span>
+  </div>
+
+</body>
+</html>

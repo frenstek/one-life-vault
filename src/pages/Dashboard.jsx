@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   HiDocument,
@@ -13,8 +13,18 @@ import {
   HiCog6Tooth,
   HiCheckCircle,
   HiArrowRight,
+  HiPencilSquare,
+  HiCalendarDays,
+  HiExclamationTriangle,
+  HiFolderOpen,
+  HiBanknotes,
+  HiMegaphone,
+  HiNewspaper,
+  HiGlobeAlt,
+  HiArrowUpTray,
 } from 'react-icons/hi2';
-import { fetchCategories, fetchDocuments, fetchAnnouncements, formatDate } from '../lib/api';
+import { fetchCategories, fetchDocuments, fetchAnnouncements, fetchTasks, fetchActivityFeed, formatDate } from '../lib/api';
+import { toLocalDate } from '../lib/dates';
 import { SkeletonDashboard } from '../components/ui/Skeleton';
 
 const DEPARTMENT_STYLES = {
@@ -76,6 +86,7 @@ export default function Dashboard() {
   const [allDocs, setAllDocs] = useState([]);
   const [totalDocs, setTotalDocs] = useState(0);
   const [announcements, setAnnouncements] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -84,8 +95,9 @@ export default function Dashboard() {
       fetchCategories(),
       fetchDocuments(),
       fetchAnnouncements().catch(() => []),
+      fetchTasks().catch(() => []),
     ])
-      .then(([catData, docsData, annData]) => {
+      .then(([catData, docsData, annData, tasksData]) => {
         const cats = catData.categories || catData || [];
         setCategories(cats);
 
@@ -101,6 +113,9 @@ export default function Dashboard() {
 
         const anns = Array.isArray(annData) ? annData : annData?.announcements || [];
         setAnnouncements(anns.slice(0, 3));
+
+        const tasksList = Array.isArray(tasksData) ? tasksData : tasksData?.tasks || [];
+        setTasks(tasksList);
       })
       .catch((err) => {
         console.error('Dashboard load error:', err);
@@ -149,52 +164,60 @@ export default function Dashboard() {
         <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-[0.06]">
           <img src="/logo.png" alt="" className="h-36 w-auto" aria-hidden="true" />
         </div>
-        <div className="relative">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">One Life Foundation</h1>
-          <p className="mt-2 text-base text-slate-500 dark:text-slate-400">
-            Document Management System — NDIS SIL Provider
-          </p>
+        <div className="relative flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">One Life Foundation</h1>
+            <p className="mt-2 text-base text-slate-500 dark:text-slate-400">
+              NDIS SIL Provider — Operations Platform
+            </p>
+          </div>
+          <MelbourneClock />
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-        <StatCard icon={HiDocument} label="Total Documents" value={totalDocs} borderColor="border-l-brand-500" iconBg="bg-blue-50 dark:bg-blue-900/30" iconColor="text-blue-600 dark:text-blue-400" />
-        <StatCard icon={HiSquares2X2} label="Departments" value={categories.length} borderColor="border-l-accent-500" iconBg="bg-emerald-50 dark:bg-emerald-900/30" iconColor="text-emerald-600 dark:text-emerald-400" />
-        <StatCard icon={HiClock} label="Recently Updated" value={recentDocs.length} borderColor="border-l-highlight-400" iconBg="bg-amber-50 dark:bg-amber-900/30" iconColor="text-amber-600 dark:text-amber-400" />
-        <StatCard icon={HiTableCells} label="File Types" value={fileTypeSummary} borderColor="border-l-purple-500" iconBg="bg-purple-50 dark:bg-purple-900/30" iconColor="text-purple-600 dark:text-purple-400" smallValue />
+      {/* Stats Cards — Tasks & Announcements */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <Link to="/tasks" className="card-hover group">
+          <TaskSummaryCard tasks={tasks} />
+        </Link>
+        <Link to="/announcements" className="card-hover group">
+          <AnnouncementSummaryCard announcements={announcements} />
+        </Link>
       </div>
 
-      {/* Quick Access Categories */}
+      {/* Activity Feed */}
+      <ActivityFeed />
+
+      {/* NDIS News Feed */}
+      <NDISNewsFeed />
+
+      {/* Quick Access — most used features */}
       <section>
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6">
           <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Quick Access</h2>
-          <Link to="/documents" className="flex items-center gap-1 text-sm font-medium text-brand-500 hover:text-brand-600">
-            View all <HiArrowRight className="h-4 w-4" />
-          </Link>
         </div>
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 xl:grid-cols-6">
-          {categories.map((cat) => {
-            const style = DEPARTMENT_STYLES[cat.category] || DEFAULT_DEPT_STYLE;
-            const Icon = style.icon;
-            return (
-              <Link
-                key={cat.category}
-                to={`/documents?category=${encodeURIComponent(cat.category)}`}
-                className="card-hover group flex flex-col items-center gap-4 rounded-xl border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#162036] px-6 py-8 shadow-sm text-center"
-              >
-                <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${style.iconBg}`}>
-                  <Icon className={`h-7 w-7 ${style.iconColor}`} />
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
-                    {cat.category}
-                  </span>
-                  <p className="mt-0.5 text-xs text-slate-400">{cat.count} doc{cat.count !== 1 ? 's' : ''}</p>
-                </div>
-              </Link>
-            );
-          })}
+          {[
+            { name: 'Progress Notes', to: '/progress-notes', icon: HiPencilSquare, iconBg: 'bg-violet-100 dark:bg-violet-900/30', iconColor: 'text-violet-600 dark:text-violet-400' },
+            { name: 'Participants', to: '/participants', icon: HiUserGroup, iconBg: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
+            { name: 'Time Clock', to: '/time-clock', icon: HiClock, iconBg: 'bg-amber-100 dark:bg-amber-900/30', iconColor: 'text-amber-600 dark:text-amber-400' },
+            { name: 'Shift Roster', to: '/shift-roster', icon: HiCalendarDays, iconBg: 'bg-emerald-100 dark:bg-emerald-900/30', iconColor: 'text-emerald-600 dark:text-emerald-400' },
+            { name: 'Incidents', to: '/incidents', icon: HiExclamationTriangle, iconBg: 'bg-red-100 dark:bg-red-900/30', iconColor: 'text-red-600 dark:text-red-400' },
+            { name: 'Documents', to: '/documents', icon: HiFolderOpen, iconBg: 'bg-slate-100 dark:bg-slate-800', iconColor: 'text-slate-600 dark:text-slate-400' },
+          ].map((item) => (
+            <Link
+              key={item.name}
+              to={item.to}
+              className="card-hover group flex flex-col items-center gap-4 rounded-xl border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#162036] px-6 py-8 shadow-sm text-center"
+            >
+              <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${item.iconBg}`}>
+                <item.icon className={`h-7 w-7 ${item.iconColor}`} />
+              </div>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
+                {item.name}
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -395,16 +418,328 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, borderColor, iconBg, iconColor, smallValue = false }) {
+// ─── Melbourne Live Clock ────────────────────────────────────────────────────
+
+function MelbourneClock() {
+  const [time, setTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const melb = time.toLocaleString('en-AU', {
+    timeZone: 'Australia/Melbourne',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+
   return (
-    <div className={`flex items-center gap-5 rounded-xl border border-slate-200 dark:border-[#263554] border-l-4 ${borderColor} bg-white dark:bg-[#162036] px-7 py-7 shadow-sm`}>
-      <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${iconBg}`}>
-        <Icon className={`h-7 w-7 ${iconColor}`} />
+    <div className="text-right">
+      <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Melbourne, AU</p>
+      <p className="text-lg font-semibold tabular-nums text-slate-700 dark:text-slate-200 font-mono">{melb}</p>
+    </div>
+  );
+}
+
+// ─── Task Summary Card ───────────────────────────────────────────────────────
+
+function TaskSummaryCard({ tasks }) {
+  const open = tasks.filter((t) => t.status === 'todo' || t.status === 'in_progress' || t.status === 'in-progress').length;
+  const inProgress = tasks.filter((t) => t.status === 'in_progress' || t.status === 'in-progress').length;
+  const today = toLocalDate();
+  const overdue = tasks.filter((t) => {
+    if (!t.due_date) return false;
+    const isOpen = t.status !== 'done' && t.status !== 'completed';
+    return isOpen && String(t.due_date).slice(0, 10) < today;
+  }).length;
+
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#162036] p-6 shadow-sm group-hover:border-blue-300 dark:group-hover:border-blue-700 transition-colors">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/30">
+          <HiClipboardDocumentList className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        </div>
+        <h3 className="text-base font-semibold text-slate-800 dark:text-white">Task Board</h3>
       </div>
-      <div className="min-w-0">
-        <p className={`font-bold text-slate-900 dark:text-white ${smallValue ? 'text-sm' : 'text-3xl'}`}>{value}</p>
-        <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{label}</p>
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <p className="text-2xl font-bold text-slate-900 dark:text-white">{open}</p>
+          <p className="text-xs text-slate-400 mt-0.5">Open</p>
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{inProgress}</p>
+          <p className="text-xs text-slate-400 mt-0.5">In Progress</p>
+        </div>
+        <div>
+          <p className={`text-2xl font-bold ${overdue > 0 ? 'text-red-500' : 'text-slate-900 dark:text-white'}`}>{overdue}</p>
+          <p className="text-xs text-slate-400 mt-0.5">Overdue</p>
+        </div>
       </div>
     </div>
+  );
+}
+
+// ─── Announcement Summary Card ───────────────────────────────────────────────
+
+function AnnouncementSummaryCard({ announcements }) {
+  const urgent = announcements.filter((a) => a.priority === 'urgent').length;
+  const latest = announcements[0];
+
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#162036] p-6 shadow-sm group-hover:border-amber-300 dark:group-hover:border-amber-700 transition-colors">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-900/30">
+          <HiMegaphone className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        </div>
+        <div className="flex items-center gap-2">
+          <h3 className="text-base font-semibold text-slate-800 dark:text-white">Announcements</h3>
+          {urgent > 0 && (
+            <span className="rounded-full bg-red-50 dark:bg-red-900/20 px-2 py-0.5 text-[10px] font-bold text-red-600 dark:text-red-400 uppercase">{urgent} urgent</span>
+          )}
+        </div>
+      </div>
+      {latest ? (
+        <div>
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 line-clamp-1">{latest.title}</p>
+          <p className="text-xs text-slate-400 mt-1 line-clamp-1">{latest.content}</p>
+          <p className="text-xs text-slate-400 mt-2">{latest.author} — {announcements.length} total</p>
+        </div>
+      ) : (
+        <p className="text-sm text-slate-400">No announcements</p>
+      )}
+    </div>
+  );
+}
+
+// ─── NDIS News Feed ──────────────────────────────────────────────────────────
+
+function NewsImage({ src, favicon }) {
+  const [failed, setFailed] = useState(false);
+  // Prefer favicon/source logo for clean look, fallback to article image, then icon
+  if (favicon && !failed) {
+    return (
+      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-slate-50 dark:bg-[#1e2d4a] mt-0.5">
+        <img src={favicon} alt="" className="h-8 w-8 rounded" onError={() => setFailed(true)} />
+      </div>
+    );
+  }
+  if (src && !failed) {
+    return (
+      <img
+        src={`/api/image-proxy?url=${encodeURIComponent(src)}`}
+        alt=""
+        className="h-12 w-12 flex-shrink-0 rounded-lg object-cover bg-slate-100 dark:bg-[#1e2d4a] mt-0.5"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return (
+    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/30 mt-0.5">
+      <HiNewspaper className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+    </div>
+  );
+}
+
+// ─── Activity Feed ──────────────────────────────────────────────────────────
+
+const FEED_TYPE_CONFIG = {
+  document: { icon: HiArrowUpTray, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30', label: 'Document' },
+  announcement: { icon: HiMegaphone, color: 'text-amber-500 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30', label: 'Announcement' },
+  incident: { icon: HiExclamationTriangle, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30', label: 'Incident' },
+};
+
+function getRelativeTime(dateStr) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - d;
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+}
+
+function ActivityFeed() {
+  const [feed, setFeed] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchActivityFeed()
+      .then(data => setFeed(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <section>
+        <div className="mb-6"><h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">What's Happening</h2></div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-100 dark:bg-[#1e2d4a]" />)}
+        </div>
+      </section>
+    );
+  }
+
+  if (feed.length === 0) return null;
+
+  return (
+    <section>
+      <div className="mb-6 flex items-center gap-3">
+        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">What's Happening</h2>
+        <span className="rounded-full bg-[#0ea03e]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#0ea03e] uppercase">Live</span>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#162036] shadow-sm">
+        <div className="divide-y divide-slate-100 dark:divide-[#263554]">
+          {feed.slice(0, 12).map((item) => {
+            const cfg = FEED_TYPE_CONFIG[item.type] || FEED_TYPE_CONFIG.document;
+            const Icon = cfg.icon;
+
+            // Priority badge for announcements
+            const priorityBadge = item.type === 'announcement' && item.meta && item.meta !== 'normal';
+            // Severity badge for incidents
+            const severityBadge = item.type === 'incident' && item.meta;
+
+            return (
+              <div key={item.id} className="flex items-start gap-4 px-5 py-4 transition-colors hover:bg-slate-50/50 dark:hover:bg-[#1e2d4a]/30">
+                <div className={`mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${cfg.bg}`}>
+                  <Icon className={`h-4.5 w-4.5 ${cfg.color}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 line-clamp-1">{item.title}</p>
+                        <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${cfg.bg} ${cfg.color}`}>
+                          {item.meta && item.type === 'document' ? item.meta : cfg.label}
+                        </span>
+                        {priorityBadge && (
+                          <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
+                            item.meta === 'urgent' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
+                          }`}>
+                            {item.meta}
+                          </span>
+                        )}
+                        {severityBadge && (
+                          <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
+                            item.meta === 'critical' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                              : item.meta === 'high' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                          }`}>
+                            {item.meta}
+                          </span>
+                        )}
+                      </div>
+                      {item.subtitle && (
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{item.subtitle}</p>
+                      )}
+                    </div>
+                    <span className="flex-shrink-0 text-[11px] text-slate-400 dark:text-slate-500 whitespace-nowrap">{getRelativeTime(item.timestamp)}</span>
+                  </div>
+                  {item.author && (
+                    <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">by {item.author}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── NDIS News Feed ──────────────────────────────────────────────────────────
+
+function NDISNewsFeed() {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/features?action=ndis-news')
+      .then(r => r.json())
+      .then(data => setArticles(data.articles || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const visible = expanded ? articles : articles.slice(0, 4);
+
+  if (loading) {
+    return (
+      <section>
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">NDIS News</h2>
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-20 animate-pulse rounded-xl bg-slate-100 dark:bg-[#1e2d4a]" />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (articles.length === 0) return null;
+
+  return (
+    <section>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">NDIS News</h2>
+          <span className="rounded-full bg-blue-50 dark:bg-blue-900/20 px-2.5 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">Live</span>
+        </div>
+      </div>
+      <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#162036] shadow-sm">
+        <ul className="divide-y divide-slate-100 dark:divide-[#263554]">
+          {visible.map((article, i) => (
+            <li key={i}>
+              <a
+                href={article.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-4 px-6 py-5 transition-colors hover:bg-slate-50 dark:hover:bg-[#1e2d4a]/50"
+              >
+                <NewsImage src={article.image} favicon={article.favicon} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200 line-clamp-2 leading-snug">
+                    {article.title}
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-3 text-xs text-slate-400">
+                    {article.source && (
+                      <span className="flex items-center gap-1">
+                        <HiGlobeAlt className="h-3 w-3" />
+                        {article.source}
+                      </span>
+                    )}
+                    {article.timeAgo && <span>{article.timeAgo}</span>}
+                  </div>
+                </div>
+                <HiArrowRight className="h-4 w-4 flex-shrink-0 text-slate-300 dark:text-slate-600 mt-1" />
+              </a>
+            </li>
+          ))}
+        </ul>
+        {articles.length > 4 && (
+          <button
+            onClick={() => setExpanded(e => !e)}
+            className="w-full border-t border-slate-100 dark:border-[#263554] px-6 py-3 text-sm font-medium text-brand-500 hover:text-brand-600 hover:bg-slate-50 dark:hover:bg-[#1e2d4a]/50 transition-colors"
+          >
+            {expanded ? 'Show less' : `Show all ${articles.length} articles`}
+          </button>
+        )}
+      </div>
+    </section>
   );
 }

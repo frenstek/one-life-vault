@@ -8,8 +8,10 @@ import {
   HiCalendarDays,
   HiUser,
   HiMapPin,
+  HiPhoto,
+  HiXMark,
 } from 'react-icons/hi2';
-import { fetchAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement, formatDate } from '../lib/api';
+import { fetchAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement, uploadAnnouncementImage, formatDate } from '../lib/api';
 import Modal, { ModalBody, ModalFooter, ButtonPrimary, ButtonSecondary, ModalError } from '../components/ui/Modal';
 import { PageHeader, Badge, EmptyState, FormInput, FormSelect, FormTextarea, FormRow } from '../components/ui/FormComponents';
 import { SkeletonGrid } from '../components/ui/Skeleton';
@@ -41,6 +43,7 @@ const EMPTY_FORM = {
   pinned: false,
   expires_at: '',
   author: 'Admin',
+  image_url: '',
 };
 
 export default function Announcements() {
@@ -56,6 +59,7 @@ export default function Announcements() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
   const [expandedIds, setExpandedIds] = useState(new Set());
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const loadAnnouncements = useCallback(async () => {
     setLoading(true);
@@ -89,10 +93,11 @@ export default function Announcements() {
       title: ann.title || '',
       content: ann.content || '',
       priority: ann.priority || 'normal',
-      target_audience: ann.target_audience || 'all',
+      target_audience: ann.target_role || ann.target_audience || 'all',
       pinned: !!ann.pinned,
       expires_at: ann.expires_at ? ann.expires_at.slice(0, 10) : '',
       author: ann.author || 'Admin',
+      image_url: ann.image_url || '',
     });
     setSaveError(null);
     setModalOpen(true);
@@ -115,10 +120,11 @@ export default function Announcements() {
         title: form.title.trim(),
         content: form.content.trim(),
         priority: form.priority,
-        target_audience: form.target_audience,
+        target_role: form.target_audience,
         pinned: form.pinned,
         expires_at: form.expires_at || null,
         author: form.author || 'Admin',
+        image_url: form.image_url || null,
       };
       if (editTarget) {
         await updateAnnouncement(editTarget.id, payload);
@@ -173,6 +179,37 @@ export default function Announcements() {
       else next.add(id);
       return next;
     });
+  }
+
+  // ─── Image upload ────────────────────────────────────────────────────────
+
+  async function handleImageUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setSaveError(null);
+    try {
+      const reader = new FileReader();
+      const fileData = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+
+      const result = await uploadAnnouncementImage(file.name, fileData);
+      setForm((f) => ({ ...f, image_url: result.url }));
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setUploadingImage(false);
+      // Reset the input so the same file can be re-selected
+      e.target.value = '';
+    }
+  }
+
+  function handleRemoveImage() {
+    setForm((f) => ({ ...f, image_url: '' }));
   }
 
   // ─── Derived data ─────────────────────────────────────────────────────────
@@ -310,6 +347,58 @@ export default function Announcements() {
                 onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
               />
 
+              {/* Image Upload */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Image <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
+                </label>
+                {form.image_url ? (
+                  <div className="relative overflow-hidden rounded-lg border border-slate-200 dark:border-[#263554]">
+                    <img
+                      src={form.image_url}
+                      alt="Announcement preview"
+                      className="h-48 w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
+                      title="Remove image"
+                    >
+                      <HiXMark className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 transition-colors ${
+                      uploadingImage
+                        ? 'border-accent-300 dark:border-accent-700 bg-accent-50 dark:bg-accent-900/10'
+                        : 'border-slate-300 dark:border-[#334766] hover:border-accent-400 dark:hover:border-accent-600 hover:bg-slate-50 dark:hover:bg-[#1e2d4a]/50'
+                    }`}
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <span className="h-6 w-6 animate-spin rounded-full border-2 border-accent-200 border-t-accent-500" />
+                        <span className="text-sm text-accent-600 dark:text-accent-400">Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <HiPhoto className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+                        <span className="text-sm text-slate-500 dark:text-slate-400">Click to upload an image</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500">PNG, JPG, GIF, WebP up to 5MB</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                    />
+                  </label>
+                )}
+              </div>
+
               <FormRow>
                 <FormSelect
                   label="Priority"
@@ -359,10 +448,10 @@ export default function Announcements() {
           </ModalBody>
 
           <ModalFooter>
-            <ButtonSecondary onClick={closeModal} disabled={saving}>
+            <ButtonSecondary onClick={closeModal} disabled={saving || uploadingImage}>
               Cancel
             </ButtonSecondary>
-            <ButtonPrimary type="submit" loading={saving}>
+            <ButtonPrimary type="submit" loading={saving} disabled={uploadingImage}>
               {saving ? 'Saving...' : editTarget ? 'Update Announcement' : 'Post Announcement'}
             </ButtonPrimary>
           </ModalFooter>
@@ -427,6 +516,17 @@ function AnnouncementCard({ announcement: ann, isPinSection, expanded, onToggleE
           : 'border-slate-200 dark:border-[#263554]'
       } ${isExpired ? 'opacity-60' : ''}`}
     >
+      {/* Image banner */}
+      {ann.image_url && (
+        <div className="overflow-hidden rounded-t-xl">
+          <img
+            src={ann.image_url}
+            alt=""
+            className="h-48 w-full object-cover"
+          />
+        </div>
+      )}
+
       <div className="p-6">
         {/* Top row: title + badges */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

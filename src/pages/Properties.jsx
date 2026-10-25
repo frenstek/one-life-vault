@@ -45,6 +45,11 @@ export default function Properties() {
   }, [statusFilter]);
 
   const filtered = properties.filter((p) => {
+    // When viewing active properties, only show occupied ones (with residents)
+    if (statusFilter === 'active') {
+      const residents = p.resident_count ?? p.current_residents ?? 0;
+      if (residents === 0) return false;
+    }
     if (typeFilter !== 'all' && p.property_type !== typeFilter) return false;
     if (stateFilter !== 'all' && p.state !== stateFilter) return false;
     if (!search.trim()) return true;
@@ -226,7 +231,7 @@ function StatCard({ icon: Icon, label, value, color }) {
 
 function PropertyCard({ property }) {
   const p = property;
-  const occupied = p.current_residents ?? 0;
+  const occupied = p.resident_count ?? p.current_residents ?? 0;
   const capacity = p.capacity ?? 0;
   const occupancyPct = capacity > 0 ? Math.round((occupied / capacity) * 100) : 0;
   const pendingMaint = p.pending_maintenance ?? 0;

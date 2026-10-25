@@ -9,6 +9,7 @@ import {
   HiTrash,
   HiHandThumbUp,
   HiCheckCircle,
+  HiArrowDownTray,
 } from 'react-icons/hi2';
 import {
   fetchFCRegister,
@@ -38,6 +39,8 @@ import Modal, {
   ModalError,
 } from '../components/ui/Modal';
 import { SkeletonGrid, SkeletonStatCard } from '../components/ui/Skeleton';
+import { exportRegisterPdf } from '../lib/registerPdfExport';
+import { toLocalDate } from '../lib/dates';
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
@@ -98,14 +101,15 @@ const SATISFACTION_LABELS = {
   na: 'N/A',
 };
 
-const INITIAL_FORM = {
+// Function so the default date is computed when the form opens, not at module load.
+const INITIAL_FORM = () => ({
   title: '',
   description: '',
   type: 'feedback',
   source: 'participant',
   participant_id: '',
   lodged_by: '',
-  lodged_date: new Date().toISOString().split('T')[0],
+  lodged_date: toLocalDate(),
   category: 'service_quality',
   severity: 'low',
   assigned_to: '',
@@ -115,7 +119,7 @@ const INITIAL_FORM = {
   follow_up_date: '',
   follow_up_notes: '',
   satisfaction_outcome: 'na',
-};
+});
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -145,7 +149,7 @@ export default function FeedbackComplaints() {
   const [isEditing, setIsEditing] = useState(false);
 
   // Form
-  const [form, setForm] = useState(INITIAL_FORM);
+  const [form, setForm] = useState(INITIAL_FORM);  // lazy initializer
   const [formError, setFormError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -233,7 +237,7 @@ export default function FeedbackComplaints() {
       setIsEditing(true);
       setSelectedEntry(entry);
     } else {
-      setForm(INITIAL_FORM);
+      setForm(INITIAL_FORM());
       setIsEditing(false);
       setSelectedEntry(null);
     }
@@ -243,7 +247,7 @@ export default function FeedbackComplaints() {
 
   function closeFormModal() {
     setFormModalOpen(false);
-    setForm(INITIAL_FORM);
+    setForm(INITIAL_FORM());
     setFormError(null);
     setIsEditing(false);
     setSelectedEntry(null);
@@ -370,13 +374,39 @@ export default function FeedbackComplaints() {
         title="Feedback & Complaints Register"
         subtitle="Track and manage feedback, complaints, compliments and suggestions"
         actions={
-          <button
-            onClick={() => openFormModal()}
-            className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-600"
-          >
-            <HiPlus className="h-4 w-4" />
-            New Entry
-          </button>
+          <>
+            <button
+              onClick={() => exportRegisterPdf({
+                title: 'Feedback & Complaints Register',
+                columns: ['Ref #', 'Title', 'Type', 'Source', 'Severity', 'Status', 'Date', 'Description', 'Resolution'],
+                rows: filtered.map((e) => [
+                  e.reference_number || e.ref_number || '',
+                  e.title || '',
+                  TYPE_LABELS[e.type] || e.type || '',
+                  SOURCE_LABELS[e.source] || e.source || '',
+                  capitalize(e.severity || 'low'),
+                  capitalize(e.status || 'received'),
+                  e.lodged_date ? formatDate(e.lodged_date) : '',
+                  e.description || '',
+                  e.resolution || 'N/A',
+                ]),
+                orientation: 'landscape',
+                columnWidths: [8, 12, 6, 7, 6, 6, 7, 24, 24],
+                filename: 'OLF-Feedback-Complaints-Register.pdf',
+              })}
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <HiArrowDownTray className="h-4 w-4" />
+              Export PDF
+            </button>
+            <button
+              onClick={() => openFormModal()}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-600"
+            >
+              <HiPlus className="h-4 w-4" />
+              New Entry
+            </button>
+          </>
         }
       />
 

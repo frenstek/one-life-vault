@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
     if (error) {
       console.error('Supabase storage error:', error);
-      return res.status(404).json({ error: 'File not found in storage', details: error.message });
+      return res.status(404).json({ error: 'File not found in storage' });
     }
 
     // Get filename from the path
@@ -65,6 +65,6 @@ export default async function handler(req, res) {
     res.status(200).send(buffer);
   } catch (error) {
     console.error('Download error:', error);
-    res.status(500).json({ error: 'Failed to download file', details: error.message });
+    res.status(500).json({ error: 'Failed to download file' });
   }
 }

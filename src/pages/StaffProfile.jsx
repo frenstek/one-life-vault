@@ -29,12 +29,24 @@ import {
   downloadStaffDocument,
   STAFF_DOCUMENT_TYPES,
 } from '../lib/api';
+import { toLocalDate } from '../lib/dates';
+
+// Whole days from today (local) until a YYYY-MM-DD expiry; negative = expired.
+function daysUntil(dateStr) {
+  const expiry = new Date(String(dateStr).slice(0, 10) + 'T00:00:00');
+  const today = new Date(toLocalDate() + 'T00:00:00');
+  return Math.round((expiry - today) / 86400000);
+}
 import LoadingSpinner from '../components/LoadingSpinner';
 import EditStaffModal from '../components/EditStaffModal';
 import UploadStaffDocModal from '../components/UploadStaffDocModal';
+import OnboardingTab from '../components/OnboardingTab';
+import GenerateContractModal from '../components/GenerateContractModal';
+import { HiClipboardDocumentList } from 'react-icons/hi2';
 
-const TABS = [
+const BASE_TABS = [
   { id: 'profile', label: 'Profile', icon: HiUser },
+  { id: 'onboarding', label: 'Onboarding', icon: HiClipboardDocumentList, onboardingOnly: true },
   { id: 'compliance', label: 'Compliance', icon: HiShieldCheck },
   { id: 'files', label: 'Staff Files', icon: HiFolderOpen },
 ];
@@ -53,6 +65,7 @@ export default function StaffProfile() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletingDoc, setDeletingDoc] = useState(null);
+  const [contractOpen, setContractOpen] = useState(false);
 
   function loadMember() {
     setLoading(true);
@@ -116,10 +129,17 @@ export default function StaffProfile() {
   if (!member) return null;
 
   const documents = member.documents || [];
+  // Sort by created_at desc so newest first
+  const sortedDocs = [...documents].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const docMap = {};
-  documents.forEach((doc) => {
+  const archivedDocs = [];
+  sortedDocs.forEach((doc) => {
     if (STAFF_DOCUMENT_TYPES.includes(doc.document_type)) {
-      docMap[doc.document_type] = doc;
+      if (!docMap[doc.document_type]) {
+        docMap[doc.document_type] = doc; // newest becomes current
+      } else {
+        archivedDocs.push(doc); // older ones are archived
+      }
     }
   });
 
@@ -132,10 +152,7 @@ export default function StaffProfile() {
     const doc = docMap[docType];
     if (!doc) return 'missing';
     if (!doc.expiry_date) return 'valid';
-    const expiry = new Date(doc.expiry_date);
-    const now = new Date();
-    const diff = expiry - now;
-    const days = diff / (1000 * 60 * 60 * 24);
+    const days = daysUntil(doc.expiry_date);
     if (days < 0) return 'expired';
     if (days <= 30) return 'expiring';
     return 'valid';
@@ -180,6 +197,8 @@ export default function StaffProfile() {
                   className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
                     member.status === 'active'
                       ? 'bg-green-50 dark:bg-green-900/20 text-accent-500'
+                      : member.status === 'onboarding'
+                      ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400'
                       : 'bg-slate-100 dark:bg-[#1e2d4a] text-slate-500 dark:text-slate-400'
                   }`}
                 >
@@ -192,6 +211,14 @@ export default function StaffProfile() {
             </div>
           </div>
           <div className="flex gap-2">
+            {!['Admin', 'Manager', 'Operations Manager', 'General Manager', 'Director', 'Coordinator'].includes(member.role) && (
+              <button
+                onClick={() => setContractOpen(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-900/20 px-3 py-2 text-sm font-medium text-brand-600 dark:text-brand-400 transition-colors hover:bg-brand-100 dark:hover:bg-brand-900/30"
+              >
+                <HiDocumentText className="h-4 w-4" /> Generate Contract
+              </button>
+            )}
             <button
               onClick={() => setEditOpen(true)}
               className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#1e2d4a] px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-[#263554]"
@@ -210,7 +237,7 @@ export default function StaffProfile() {
 
       {/* Tab Bar */}
       <div className="flex gap-1 rounded-xl border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#162036] p-1.5">
-        {TABS.map((tab) => {
+        {BASE_TABS.filter(tab => !tab.onboardingOnly || member.status === 'onboarding').map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
@@ -240,9 +267,18 @@ export default function StaffProfile() {
         <ProfileTab member={member} formatDate={formatDate} />
       )}
 
+      {activeTab === 'onboarding' && member.status === 'onboarding' && (
+        <OnboardingTab
+          staffId={staffId}
+          staffName={`${member.first_name} ${member.last_name}`}
+          onStatusChange={loadMember}
+        />
+      )}
+
       {activeTab === 'compliance' && (
         <ComplianceTab
           docMap={docMap}
+          archivedDocs={archivedDocs}
           getDocStatus={getDocStatus}
           formatDate={formatDate}
           deletingDoc={deletingDoc}
@@ -320,6 +356,14 @@ export default function StaffProfile() {
         </div>
       )}
 
+      {/* Generate Contract Modal */}
+      {contractOpen && (
+        <GenerateContractModal
+          member={member}
+          onClose={() => setContractOpen(false)}
+        />
+      )}
+
       {/* Edit Staff Modal */}
       <EditStaffModal
         isOpen={editOpen}
@@ -378,6 +422,9 @@ function ProfileTab({ member, formatDate }) {
           <DetailRow label="Position Type" value={member.position_type} />
           <DetailRow label="Department" value={member.department} />
           <DetailRow icon={HiCalendar} label="Start Date" value={member.start_date ? formatDate(member.start_date) : null} />
+          <DetailRow icon={HiShieldCheck} label="NDIS Worker Clearance No." value={member.ndis_clearance_number} />
+          <DetailRow label="TFN" value={member.tfn} />
+          <DetailRow label="Preferred Super" value={member.preferred_super} />
           <DetailRow label="Status" value={
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
               member.status === 'active'
@@ -440,7 +487,9 @@ function DetailRow({ icon: Icon, label, value }) {
 
 // ─── Compliance Tab ───────────────────────────────────────────────────────────
 
-function ComplianceTab({ docMap, getDocStatus, formatDate, deletingDoc, onUpload, onDelete, onDownload }) {
+function ComplianceTab({ docMap, archivedDocs = [], getDocStatus, formatDate, deletingDoc, onUpload, onDelete, onDownload }) {
+  const [showArchive, setShowArchive] = useState(false);
+
   return (
     <div>
       <div className="mb-5 flex items-center justify-between">
@@ -457,6 +506,7 @@ function ComplianceTab({ docMap, getDocStatus, formatDate, deletingDoc, onUpload
         {STAFF_DOCUMENT_TYPES.map((docType) => {
           const doc = docMap[docType];
           const status = getDocStatus(docType);
+          const archiveCount = archivedDocs.filter((d) => d.document_type === docType).length;
 
           return (
             <DocumentTypeCard
@@ -466,6 +516,7 @@ function ComplianceTab({ docMap, getDocStatus, formatDate, deletingDoc, onUpload
               status={status}
               formatDate={formatDate}
               deletingDoc={deletingDoc}
+              archiveCount={archiveCount}
               onUpload={() => onUpload(docType)}
               onDelete={() => onDelete(doc?.id)}
               onDownload={() => onDownload(doc?.id, doc?.document_name)}
@@ -473,11 +524,67 @@ function ComplianceTab({ docMap, getDocStatus, formatDate, deletingDoc, onUpload
           );
         })}
       </div>
+
+      {/* Archive Section */}
+      {archivedDocs.length > 0 && (
+        <div className="mt-8">
+          <button
+            onClick={() => setShowArchive((v) => !v)}
+            className="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+          >
+            <HiFolderOpen className="h-4 w-4" />
+            Archive ({archivedDocs.length} previous version{archivedDocs.length !== 1 ? 's' : ''})
+            <svg className={`h-4 w-4 transition-transform ${showArchive ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+            </svg>
+          </button>
+
+          {showArchive && (
+            <div className="mt-4 space-y-2">
+              {archivedDocs.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-[#263554] bg-slate-50 dark:bg-[#1e2d4a]/50 px-4 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <HiDocumentText className="h-4 w-4 flex-shrink-0 text-slate-400" />
+                      <p className="break-words text-sm font-medium text-slate-600 dark:text-slate-300">{doc.document_name}</p>
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-3 text-xs text-slate-400">
+                      <span>{doc.document_type}</span>
+                      {doc.issue_date && <span>Issued: {formatDate(doc.issue_date)}</span>}
+                      {doc.expiry_date && <span>Expired: {formatDate(doc.expiry_date)}</span>}
+                      <span>Uploaded: {formatDate(doc.created_at)}</span>
+                    </div>
+                  </div>
+                  <div className="ml-4 flex items-center gap-2">
+                    <button
+                      onClick={() => onDownload(doc.id, doc.document_name)}
+                      className="rounded-md border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#162036] px-2.5 py-1 text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#263554]"
+                    >
+                      <HiArrowDownTray className="mr-1 inline h-3 w-3" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => onDelete(doc.id)}
+                      disabled={deletingDoc === doc.id}
+                      className="rounded-md border border-red-200 dark:border-red-800 bg-white dark:bg-[#162036] px-2.5 py-1 text-xs font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+                    >
+                      {deletingDoc === doc.id ? '...' : <HiTrash className="inline h-3 w-3" />}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function DocumentTypeCard({ docType, doc, status, formatDate, deletingDoc, onUpload, onDelete, onDownload }) {
+function DocumentTypeCard({ docType, doc, status, formatDate, deletingDoc, onUpload, onDelete, onDownload, archiveCount = 0 }) {
   const statusConfig = {
     valid: {
       border: 'border-accent-500/30 dark:border-accent-500/20',
@@ -531,7 +638,7 @@ function DocumentTypeCard({ docType, doc, status, formatDate, deletingDoc, onUpl
       {doc ? (
         <div className="mt-3 space-y-2">
           {doc.document_name && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate" title={doc.document_name}>
+            <p className="text-xs text-slate-500 dark:text-slate-400 break-words leading-relaxed">
               {doc.document_name}
             </p>
           )}
@@ -548,6 +655,12 @@ function DocumentTypeCard({ docType, doc, status, formatDate, deletingDoc, onUpl
               Expires: {formatDate(doc.expiry_date)}
             </p>
           )}
+          {archiveCount > 0 && (
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              <HiFolderOpen className="mr-1 inline h-3 w-3" />
+              +{archiveCount} archived version{archiveCount !== 1 ? 's' : ''}
+            </p>
+          )}
           <div className="mt-2 flex gap-2">
             <button
               onClick={onDownload}
@@ -560,7 +673,7 @@ function DocumentTypeCard({ docType, doc, status, formatDate, deletingDoc, onUpl
               onClick={onUpload}
               className="rounded-md border border-slate-200 dark:border-[#263554] bg-white dark:bg-[#1e2d4a] px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#263554]"
             >
-              Replace
+              Add New
             </button>
             <button
               onClick={onDelete}
@@ -634,13 +747,13 @@ function FilesTab({ files, formatDate, deletingDoc, onUpload, onDelete, onDownlo
             </thead>
             <tbody>
               {files.map((doc) => {
-                const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
+                const isExpired = doc.expiry_date && daysUntil(doc.expiry_date) < 0;
                 return (
                   <tr key={doc.id} className="border-b border-slate-100 dark:border-[#263554] last:border-0">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <HiDocumentText className="h-5 w-5 flex-shrink-0 text-brand-500" />
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate max-w-[200px]" title={doc.document_name}>
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200 break-words">
                           {doc.document_name}
                         </span>
                       </div>

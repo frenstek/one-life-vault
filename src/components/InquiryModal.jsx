@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { HiUserPlus, HiPencilSquare } from 'react-icons/hi2';
 import { createInquiry, updateInquiry } from '../lib/api';
+import { toLocalDate } from '../lib/dates';
 import Modal, { ModalBody, ModalFooter, ModalError, ButtonPrimary, ButtonSecondary } from './ui/Modal';
 
 const STATUS_OPTIONS = ['New', 'In Progress', 'Accepted', 'Declined', 'Waitlisted', 'Converted'];
@@ -25,7 +26,7 @@ const INITIAL = {
   current_living: '',
   funding_status: 'Unknown',
   funding_ratio: '',
-  inquiry_date: new Date().toISOString().slice(0, 10),
+  inquiry_date: '',
   status: 'New',
   priority: 'Normal',
   assigned_to: '',
@@ -52,7 +53,7 @@ export default function InquiryModal({ isOpen, onClose, inquiry, onSaved }) {
         }
         setForm(f);
       } else {
-        setForm({ ...INITIAL, inquiry_date: new Date().toISOString().slice(0, 10) });
+        setForm({ ...INITIAL, inquiry_date: toLocalDate() });
       }
       setSaving(false);
       setError(null);
