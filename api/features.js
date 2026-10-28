@@ -1245,6 +1245,59 @@ export default async function handler(req, res) {
       });
     }
 
+    if (action === 'pn-missing' && method === 'GET') {
+      // MISSING PROGRESS NOTES (29 Oct 2026, Kevin: "flag if they miss a progress note for the day").
+      // A participant is WATCHED when participants.notes_expected = 'daily', or (default 'auto') when they had a note on
+      // at least 60% of the last 28 days, i.e. a 24/7 SIL participant. 'none' switches a participant off. Every watched
+      // participant must have at least notes_min_per_day (default 1) notes on every day up to yesterday; today is
+      // reported separately. Dates are Melbourne dates. The two columns are optional (missing-notes-migration.sql).
+      const days = Math.min(Math.max(parseInt(req.query.days, 10) || 14, 1), 60);
+      const LOOKBACK = 28;
+      const melb = new Date(new Date().toLocaleString('en-US', { timeZone: 'Australia/Melbourne' }));
+      const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const back = (n) => { const d = new Date(melb); d.setDate(d.getDate() - n); return ymd(d); };
+      const today = ymd(melb);
+      const since = back(LOOKBACK);
+      const { data: parts, error: pErr } = await supabase.from('participants').select('*').eq('status', 'active').order('last_name');
+      if (pErr) throw pErr;
+      const notes = [];
+      for (let from = 0; from < 50000; from += 1000) {
+        const { data, error } = await supabase.from('progress_notes').select('participant_id, participant_name, note_date, staff_name').gte('note_date', since).order('id').range(from, from + 999);
+        if (error) throw error;
+        notes.push(...(data || []));
+        if (!data || data.length < 1000) break;
+      }
+      const byId = {}, byName = {};
+      for (const n of notes) {
+        const d = String(n.note_date).slice(0, 10);
+        if (n.participant_id) ((byId[n.participant_id] ??= {})[d] ??= []).push(n.staff_name || '');
+        else ((byName[(n.participant_name || '').trim().toLowerCase()] ??= {})[d] ??= []).push(n.staff_name || '');
+      }
+      const lookbackDates = Array.from({ length: LOOKBACK }, (_, i) => back(i + 1));
+      const windowDates = Array.from({ length: days }, (_, i) => back(days - i));  // oldest -> yesterday
+      const watched = [], notWatched = [];
+      for (const p of parts || []) {
+        const name = `${p.first_name || ''} ${p.last_name || ''}`.trim();
+        const merged = { ...(byName[name.toLowerCase()] || {}) };
+        for (const [d, staff] of Object.entries(byId[p.id] || {})) merged[d] = [...(merged[d] || []), ...staff];
+        const count = (d) => (merged[d] || []).length;
+        const cfg = p.notes_expected || 'auto';
+        const min = Math.max(1, parseInt(p.notes_min_per_day, 10) || 1);
+        const notedDays = lookbackDates.filter((d) => count(d) > 0).length;
+        const autoDaily = notedDays >= Math.ceil(LOOKBACK * 0.6);
+        const expected = cfg === 'daily' || (cfg !== 'none' && autoDaily);
+        const row = { id: p.id, name, setting: cfg, min_per_day: min, noted_days_28: notedDays };
+        if (!expected) { notWatched.push(row); continue; }
+        const dayRows = windowDates.map((d) => ({ date: d, count: count(d), staff: [...new Set(merged[d] || [])].filter(Boolean) }));
+        const missing = dayRows.filter((r) => r.count < min).map((r) => ({ date: r.date, count: r.count, need: min }));
+        watched.push({ ...row, days: dayRows, missing, today_count: count(today), last_note: Object.keys(merged).sort().pop() || null });
+      }
+      const missingTotal = watched.reduce((a, w) => a + w.missing.length, 0);
+      return res.json({ generated_at: new Date().toISOString(), today, days, window: windowDates, lookback_days: LOOKBACK,
+        participants: watched, not_watched: notWatched,
+        summary: { watched: watched.length, with_gaps: watched.filter((w) => w.missing.length).length, missing_days: missingTotal, none_today: watched.filter((w) => w.today_count === 0).length } });
+    }
+
     if (action === 'pn-create' && method === 'POST') {
       const body = req.body || {};
       if (!body.participant_name) return res.status(400).json({ error: 'participant_name required' });

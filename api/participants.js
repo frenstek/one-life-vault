@@ -26,6 +26,7 @@ const PARTICIPANT_FIELDS = [
   'occupational_therapist', 'speech_pathologist', 'psychologist',
   'plan_manager_name', 'plan_manager_email', 'plan_manager_organisation',
   'assigned_staff', 'status', 'notes',
+  'notes_expected', 'notes_min_per_day',  // missing-notes check (optional columns, missing-notes-migration.sql)
 ];
 
 const DATE_FIELDS = ['date_of_birth', 'start_date_with_olf', 'plan_start_date', 'plan_end_date', 'next_follow_up', 'inquiry_date'];

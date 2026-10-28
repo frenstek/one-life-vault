@@ -266,6 +266,9 @@ export default function Sidebar({ open, onClose }) {
             {canAccess('progress-notes') && (
               <li><NavLink to="/progress-notes" onClick={onClose} className={({ isActive }) => navLinkClasses(isActive)}><HiPencilSquare className="h-5 w-5 flex-shrink-0" /><span>Progress Notes</span></NavLink></li>
             )}
+            {canAccess('progress-notes') && (
+              <li><NavLink to="/notes-check" onClick={onClose} className={({ isActive }) => navLinkClasses(isActive)}><HiExclamationTriangle className="h-5 w-5 flex-shrink-0" /><span>Notes Check</span></NavLink></li>
+            )}
             {canAccess('roster-of-care') && (
               <li><NavLink to="/roster-of-care" onClick={onClose} className={({ isActive }) => navLinkClasses(isActive)}><HiTableCells className="h-5 w-5 flex-shrink-0" /><span>Roster of Care</span></NavLink></li>
             )}

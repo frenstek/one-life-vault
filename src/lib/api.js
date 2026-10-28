@@ -2185,6 +2185,13 @@ export async function fetchProgressNotes(participantName, startDate, endDate, se
   return res.json();
 }
 
+/** Missing progress notes: watched participants and the days in the last `days` days with fewer notes than expected. */
+export async function fetchMissingNotes(days = 14) {
+  const res = await fetch(`/api/features?action=pn-missing&days=${days}`);
+  if (!res.ok) throw new Error(`Failed to check missing notes: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchProgressNoteStats() {
   const res = await fetch('/api/features?action=pn-stats');
   if (!res.ok) throw new Error(`Failed to fetch progress note stats: ${res.status}`);

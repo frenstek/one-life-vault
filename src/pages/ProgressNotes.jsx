@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   HiPlus,
   HiMagnifyingGlass,
@@ -18,6 +19,7 @@ import {
 import {
   fetchProgressNotes,
   fetchProgressNoteStats,
+  fetchMissingNotes,
   createProgressNote,
   updateProgressNote,
   deleteProgressNote,
@@ -94,6 +96,8 @@ function groupByDate(notes, order = 'newest') {
 export default function ProgressNotes() {
   const [notes, setNotes] = useState([]);
   const [stats, setStats] = useState(null);
+  const [missing, setMissing] = useState(null);  // missing-notes check, last 7 days
+  useEffect(() => { fetchMissingNotes(7).then(setMissing).catch(() => setMissing(null)); }, [notes.length]);
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -236,6 +240,18 @@ export default function ProgressNotes() {
           </div>
         }
       />
+
+      {/* Missing notes banner (29 Oct 2026) */}
+      {missing && missing.summary.missing_days > 0 && (
+        <Link to="/notes-check" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 hover:bg-red-100 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-200">
+          <span className="flex items-center gap-2 font-semibold"><HiExclamationTriangle className="h-5 w-5" />
+            {missing.summary.missing_days} day{missing.summary.missing_days === 1 ? '' : 's'} with no progress note in the last 7 days
+          </span>
+          <span className="text-xs">
+            {missing.participants.filter(p => p.missing.length).map(p => `${p.name}: ${p.missing.map(m => new Date(m.date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })).join(', ')}`).join(' · ')} — open Notes Check
+          </span>
+        </Link>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

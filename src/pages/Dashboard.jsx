@@ -23,7 +23,7 @@ import {
   HiGlobeAlt,
   HiArrowUpTray,
 } from 'react-icons/hi2';
-import { fetchCategories, fetchDocuments, fetchAnnouncements, fetchTasks, fetchActivityFeed, formatDate } from '../lib/api';
+import { fetchCategories, fetchDocuments, fetchAnnouncements, fetchTasks, fetchActivityFeed, fetchMissingNotes, formatDate } from '../lib/api';
 import { toLocalDate } from '../lib/dates';
 import { SkeletonDashboard } from '../components/ui/Skeleton';
 
@@ -87,6 +87,7 @@ export default function Dashboard() {
   const [totalDocs, setTotalDocs] = useState(0);
   const [announcements, setAnnouncements] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [missingNotes, setMissingNotes] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -96,8 +97,10 @@ export default function Dashboard() {
       fetchDocuments(),
       fetchAnnouncements().catch(() => []),
       fetchTasks().catch(() => []),
+      fetchMissingNotes(7).catch(() => null),
     ])
-      .then(([catData, docsData, annData, tasksData]) => {
+      .then(([catData, docsData, annData, tasksData, missingData]) => {
+        setMissingNotes(missingData);
         const cats = catData.categories || catData || [];
         setCategories(cats);
 
@@ -175,8 +178,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats Cards — Tasks & Announcements */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      {/* Stats Cards — Missing notes, Tasks & Announcements */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <Link to="/notes-check" className="card-hover group">
+          <MissingNotesCard data={missingNotes} />
+        </Link>
         <Link to="/tasks" className="card-hover group">
           <TaskSummaryCard tasks={tasks} />
         </Link>
@@ -481,6 +487,51 @@ function TaskSummaryCard({ tasks }) {
           <p className="text-xs text-slate-400 mt-0.5">Overdue</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Missing Notes Card (29 Oct 2026): red when a watched participant has a day with no progress note ─────────
+
+function MissingNotesCard({ data }) {
+  const missing = data?.summary?.missing_days ?? null;
+  const withGaps = data?.summary?.with_gaps ?? 0;
+  const noneToday = data?.summary?.none_today ?? 0;
+  const bad = missing > 0;
+  const gaps = (data?.participants || []).flatMap((p) => p.missing.map((m) => ({ name: p.name, date: m.date }))).sort((x, y) => y.date.localeCompare(x.date)).slice(0, 3);
+  return (
+    <div className={`rounded-xl border bg-white dark:bg-[#162036] p-6 shadow-sm transition-colors ${bad ? 'border-red-300 dark:border-red-800 group-hover:border-red-400' : 'border-slate-200 dark:border-[#263554] group-hover:border-emerald-300'}`}>
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${bad ? 'bg-red-50 dark:bg-red-900/30' : 'bg-emerald-50 dark:bg-emerald-900/30'}`}>
+          {bad ? <HiExclamationTriangle className="h-5 w-5 text-red-600 dark:text-red-400" /> : <HiCheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+        </div>
+        <h3 className="text-base font-semibold text-slate-800 dark:text-white">Progress Notes Check</h3>
+      </div>
+      {missing === null ? (
+        <p className="text-sm text-slate-400">Could not load the check.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p className={`text-2xl font-bold ${bad ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>{missing}</p>
+              <p className="text-xs text-slate-400 mt-0.5">Days missed (7 days)</p>
+            </div>
+            <div>
+              <p className={`text-2xl font-bold ${withGaps ? 'text-red-500' : 'text-slate-900 dark:text-white'}`}>{withGaps}</p>
+              <p className="text-xs text-slate-400 mt-0.5">Participants</p>
+            </div>
+            <div>
+              <p className={`text-2xl font-bold ${noneToday ? 'text-amber-500' : 'text-slate-900 dark:text-white'}`}>{noneToday}</p>
+              <p className="text-xs text-slate-400 mt-0.5">None yet today</p>
+            </div>
+          </div>
+          {gaps.length > 0 && (
+            <p className="mt-3 text-xs text-red-600 dark:text-red-400">
+              {gaps.map((g) => `${g.name} · ${new Date(g.date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}`).join(' · ')}
+            </p>
+          )}
+        </>
+      )}
     </div>
   );
 }

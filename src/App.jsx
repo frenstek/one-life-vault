@@ -75,6 +75,7 @@ import RosterOfCareBuilder from './pages/RosterOfCareBuilder';
 import Invoices from './pages/Invoices';
 import ParticipantInvoices from './pages/ParticipantInvoices';
 import ProgressNotes from './pages/ProgressNotes';
+import NotesCheck from './pages/NotesCheck';
 import StaffAccounts from './pages/StaffAccounts';
 import StaffPayslips from './pages/StaffPayslips';
 import Permissions from './pages/Permissions';
@@ -208,6 +209,13 @@ export default function App() {
             <Route path="progress-notes" element={
               <ProtectedRoute feature="progress-notes">
                 <ProgressNotes />
+              </ProtectedRoute>
+            } />
+
+            {/* Missing progress notes check — same permission as progress notes */}
+            <Route path="notes-check" element={
+              <ProtectedRoute feature="progress-notes">
+                <NotesCheck />
               </ProtectedRoute>
             } />
 
