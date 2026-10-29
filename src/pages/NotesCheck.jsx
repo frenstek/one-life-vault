@@ -173,8 +173,8 @@ export default function NotesCheck() {
 
       {!loading && data && data.not_watched.length > 0 && (
         <p className="text-xs text-slate-400">
-          Not watched (fewer than 17 noted days in the last 28, or set to none): {data.not_watched.map((p) => p.name).join(', ')}.
-          To watch one of them regardless, set "Progress notes expected" to daily on the participant profile.
+          Watching {data.pinned?.length ? data.pinned.join(' and ') : 'participants noted on most days'} only. Not watched: {data.not_watched.map((p) => p.name).join(', ')}
+          {data.pinned?.length ? ' (Darrell is in hospital; ask Kevin to add a name to the watch list).' : '.'}
         </p>
       )}
 

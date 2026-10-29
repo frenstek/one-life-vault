@@ -1276,6 +1276,7 @@ export default async function handler(req, res) {
       const lookbackDates = Array.from({ length: LOOKBACK }, (_, i) => back(i + 1));
       const windowDates = Array.from({ length: days }, (_, i) => back(days - i));  // oldest -> yesterday
       const watched = [], notWatched = [];
+      const pinnedNames = (process.env.NOTES_WATCH || 'John Eric Ross, Antonino Fiorito').split(',').map((x) => x.trim()).filter(Boolean);
       for (const p of parts || []) {
         const name = `${p.first_name || ''} ${p.last_name || ''}`.trim();
         const merged = { ...(byName[name.toLowerCase()] || {}) };
@@ -1285,7 +1286,10 @@ export default async function handler(req, res) {
         const min = Math.max(1, parseInt(p.notes_min_per_day, 10) || 1);
         const notedDays = lookbackDates.filter((d) => count(d) > 0).length;
         const autoDaily = notedDays >= Math.ceil(LOOKBACK * 0.6);
-        const expected = cfg === 'daily' || (cfg !== 'none' && autoDaily);
+        // PINNED LIST (Kevin, 29 Oct 2026: "it should only show for nino and john for now as darrell is in hospital").
+        // While NOTES_WATCH (or this default) names anyone, only those names are watched; clear it to go back to the auto rule.
+        const pinned = (process.env.NOTES_WATCH || 'John Eric Ross, Antonino Fiorito').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+        const expected = pinned.length ? pinned.includes(name.toLowerCase()) : (cfg === 'daily' || (cfg !== 'none' && autoDaily));
         const row = { id: p.id, name, setting: cfg, min_per_day: min, noted_days_28: notedDays };
         if (!expected) { notWatched.push(row); continue; }
         const dayRows = windowDates.map((d) => ({ date: d, count: count(d), staff: [...new Set(merged[d] || [])].filter(Boolean) }));
@@ -1293,7 +1297,7 @@ export default async function handler(req, res) {
         watched.push({ ...row, days: dayRows, missing, today_count: count(today), last_note: Object.keys(merged).sort().pop() || null });
       }
       const missingTotal = watched.reduce((a, w) => a + w.missing.length, 0);
-      return res.json({ generated_at: new Date().toISOString(), today, days, window: windowDates, lookback_days: LOOKBACK,
+      return res.json({ generated_at: new Date().toISOString(), today, days, window: windowDates, lookback_days: LOOKBACK, pinned: pinnedNames,
         participants: watched, not_watched: notWatched,
         summary: { watched: watched.length, with_gaps: watched.filter((w) => w.missing.length).length, missing_days: missingTotal, none_today: watched.filter((w) => w.today_count === 0).length } });
     }
