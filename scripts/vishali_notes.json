@@ -1,0 +1,1189 @@
+{
+  "notes": [
+    {
+      "id": "295c1992-e422-4505-8612-ecffd1a53e3d",
+      "note_date": "2026-03-25",
+      "shift": "6am-12pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "54caa9d1-536e-4f25-abe5-d54e17bc13bd",
+      "note_date": "2026-03-26",
+      "shift": "6am-12pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "22a0e4f0-e59c-4340-88d1-e0fbbd829a6f",
+      "note_date": "2026-03-30",
+      "shift": "Afternoon 2pm-10pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-06-04T02:22:15.411152+00:00",
+      "participant_id": "1941cb8e-575f-473f-a4ee-a7f676dbc9e7",
+      "participant_name": "Nathan Gottaas"
+    },
+    {
+      "id": "0d0f7aba-d479-45a1-b391-f08e6a636a1c",
+      "note_date": "2026-03-31",
+      "shift": "Day shift",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-23T05:25:12.818393+00:00",
+      "participant_id": null,
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "fb7f3a8b-36ce-46be-850b-b7102e57456e",
+      "note_date": "2026-04-04",
+      "shift": "6-11am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "0e20941a-f0b4-4d9d-b9ae-59cc575577bc",
+      "note_date": "2026-04-05",
+      "shift": "9am-12pm and 12pm-4pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "9d79fe48-259a-4cff-912d-5847b993b823",
+      "note_date": "2026-04-06",
+      "shift": "10:00pm-6:00am (Sleepover)",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "370c779b-e135-4747-be6e-1e01548c96a3",
+      "note_date": "2026-04-07",
+      "shift": "10:00pm-6:00am (Sleepover)",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "29e379f1-7eeb-470e-96a2-8bb148b8212b",
+      "note_date": "2026-04-07",
+      "shift": "6:00am-12:00pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-06-04T08:38:49.446881+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "bc0a98c9-53a2-4bc3-a58f-15f70bb05633",
+      "note_date": "2026-04-09",
+      "shift": "4:00pm-6:00am (incl. Sleepover)",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "2ffa336c-1c6c-413e-8e12-563389633c67",
+      "note_date": "2026-04-10",
+      "shift": "6am-7:30am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-06-04T06:01:35.146885+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "c9447393-6ccc-4a6d-9994-53f54816c0b2",
+      "note_date": "2026-04-11",
+      "shift": "6am-12pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "90a567d9-0918-475c-bb26-887647ff9c3b",
+      "note_date": "2026-04-12",
+      "shift": "9:00am-12pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "454a9657-e076-445c-bcb6-d07ed241256b",
+      "note_date": "2026-04-13",
+      "shift": "4pm-10pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "481a47b1-8b2c-4734-9ae9-25bf19a8aa64",
+      "note_date": "2026-04-14",
+      "shift": "4pm-6am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "06a59175-ff48-4b56-9c65-b0a2e91e593d",
+      "note_date": "2026-04-15",
+      "shift": "4pm-6am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-04-18T13:28:14.330044+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "645765a5-7c70-4351-a1ff-d0095f5fbe90",
+      "note_date": "2026-04-17",
+      "shift": "Morning 6am-12pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:06.059132+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "ef33b674-d44a-4152-bce4-de67a2097ca9",
+      "note_date": "2026-04-18",
+      "shift": "Morning 8am-12pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:06.059132+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "5d1fc9c5-8d0e-4485-b625-8fb03732a0c5",
+      "note_date": "2026-04-19",
+      "shift": "Morning 8am-12pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:06.059132+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "c51f94f0-c8f5-444a-b71c-5bec41d53bda",
+      "note_date": "2026-04-19",
+      "shift": "Leave/Outing",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:06.059132+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "466203eb-c417-4594-9873-8298a1d73539",
+      "note_date": "2026-04-21",
+      "shift": "Afternoon 4pm-6am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:07.859152+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "bec58dec-9972-4c00-88b1-cc19d3583436",
+      "note_date": "2026-04-23",
+      "shift": "Afternoon 4pm-6am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:07.859152+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "e5b4cf99-6e99-4a18-87e6-8f2bd1560fc4",
+      "note_date": "2026-04-25",
+      "shift": "Morning 6am-12pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:09.122725+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "12aacb62-a72e-4b9d-9341-05ff77b155c9",
+      "note_date": "2026-04-26",
+      "shift": "Sleepover 8pm-6am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:09.122725+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "a0025bac-5ef0-4da6-b6fc-e43c4d85d795",
+      "note_date": "2026-04-28",
+      "shift": "Afternoon 4pm-8pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:10.665794+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "a204856c-4b53-4bf1-ad02-a3911b8989d0",
+      "note_date": "2026-04-30",
+      "shift": "Afternoon 4pm-6am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:10.665794+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "e46dcc25-cab1-4d70-9bec-c68fb9002f69",
+      "note_date": "2026-05-03",
+      "shift": "Morning 8am-12pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:11.945307+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "18105446-1d8c-4094-beef-e37e3219a221",
+      "note_date": "2026-05-04",
+      "shift": "Sleepover 6pm-6am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:11.945307+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "45e891de-fced-4010-8012-edd1cbc6fc78",
+      "note_date": "2026-05-05",
+      "shift": "Afternoon 4pm-6am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-08T03:06:11.945307+00:00",
+      "participant_id": "71660d0d-84fc-410b-b15a-89843d624c9b",
+      "participant_name": "Nicole Elizabeth Knight"
+    },
+    {
+      "id": "94afdab5-ae48-4ab5-b9ee-278b56aa3e5b",
+      "note_date": "2026-05-26",
+      "shift": "Afternoon 2pm-10pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-26T11:26:09.604589+00:00",
+      "participant_id": null,
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "a795081b-e769-4bcb-8cfa-2d34f48c6c8c",
+      "note_date": "2026-05-27",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-27T15:17:46.983381+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "2998ed15-9e7b-4487-9620-a381a074eaaf",
+      "note_date": "2026-05-29",
+      "shift": "Night 10pm-6am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-05-29T19:30:33.619599+00:00",
+      "participant_id": null,
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "2bb36c0c-eb9d-4742-ac5d-0ce7f8b87f04",
+      "note_date": "2026-06-02",
+      "shift": "Sleepover 10pm-6am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-06-02T19:20:39.303441+00:00",
+      "participant_id": null,
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "f1bd44e9-3a2e-4d8c-aab7-1c8adeffcdd7",
+      "note_date": "2026-06-05",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-06-05T18:06:34.207974+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "290d1487-df6b-410d-a11a-afb82e08046f",
+      "note_date": "2026-06-06",
+      "shift": "Night 10pm-6am",
+      "staff_name": "vishali",
+      "created_by": null,
+      "created_at": "2026-06-06T19:13:37.701735+00:00",
+      "participant_id": null,
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "cf439364-f973-4bf5-a550-e728da59a82d",
+      "note_date": "2026-06-20",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-06-20T03:56:25.766265+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "0a777101-8d3e-4fcf-9ec1-b9005b99777c",
+      "note_date": "2026-06-21",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-06-21T10:03:55.057261+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "e1ea0cdf-7b96-4886-8b1e-b2bca86d0526",
+      "note_date": "2026-06-26",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-06-26T05:38:45.623251+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "c461b17c-0fe3-48ba-a8d2-67725306c898",
+      "note_date": "2026-06-26",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-06-26T05:16:32.695984+00:00",
+      "participant_id": "2b566861-d73f-428f-9283-05d51096c056",
+      "participant_name": "Darrell James Twyford"
+    },
+    {
+      "id": "e0024c71-247d-40df-b83c-85f03e036403",
+      "note_date": "2026-06-27",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-06-27T06:26:22.155085+00:00",
+      "participant_id": "2b566861-d73f-428f-9283-05d51096c056",
+      "participant_name": "Darrell James Twyford"
+    },
+    {
+      "id": "1113d2a6-13c5-4066-8a39-b6bb7b559eaf",
+      "note_date": "2026-06-27",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-06-27T01:48:22.456866+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "8090bb3d-e207-45a8-9f10-ad8201e31aa0",
+      "note_date": "2026-07-07",
+      "shift": "Afternoon 2pm-10pm",
+      "staff_name": "Vaishali",
+      "created_by": null,
+      "created_at": "2026-08-18T08:27:43.254957+00:00",
+      "participant_id": "2b566861-d73f-428f-9283-05d51096c056",
+      "participant_name": "Darrell James Twyford"
+    },
+    {
+      "id": "cc92cc32-a46d-41b7-847d-062d6929f270",
+      "note_date": "2026-07-09",
+      "shift": "2:00pm - 10:00pm",
+      "staff_name": "Vaishali",
+      "created_by": null,
+      "created_at": "2026-10-24T11:05:03.01618+00:00",
+      "participant_id": "2b566861-d73f-428f-9283-05d51096c056",
+      "participant_name": "Darrell James Twyford"
+    },
+    {
+      "id": "f6b0badd-8dcc-4817-b9ed-bb1abd51641d",
+      "note_date": "2026-07-14",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-14T09:51:22.624569+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "59a6914c-e6c9-4b96-af9c-c0bca11be233",
+      "note_date": "2026-07-14",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-14T10:09:08.936286+00:00",
+      "participant_id": "2b566861-d73f-428f-9283-05d51096c056",
+      "participant_name": "Darrell James Twyford"
+    },
+    {
+      "id": "655d5214-6672-4682-af53-79e8d726019d",
+      "note_date": "2026-07-21",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-21T10:07:53.362058+00:00",
+      "participant_id": "2b566861-d73f-428f-9283-05d51096c056",
+      "participant_name": "Darrell James Twyford"
+    },
+    {
+      "id": "0245f1cc-f1ad-4e89-a488-dbce44a54955",
+      "note_date": "2026-07-21",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-21T10:24:58.748797+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "ce315e90-b7d6-4c13-8f73-4204f1bea609",
+      "note_date": "2026-07-23",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-23T09:50:37.954471+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "67b38a5e-b224-4031-9a03-940c9cb96e54",
+      "note_date": "2026-07-23",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-23T10:34:35.089601+00:00",
+      "participant_id": "2b566861-d73f-428f-9283-05d51096c056",
+      "participant_name": "Darrell James Twyford"
+    },
+    {
+      "id": "b3e1e20c-3088-4633-a88d-f06705805016",
+      "note_date": "2026-07-25",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-25T03:24:14.60414+00:00",
+      "participant_id": "2b566861-d73f-428f-9283-05d51096c056",
+      "participant_name": "Darrell James Twyford"
+    },
+    {
+      "id": "b6648754-14ed-4e85-9a4c-9d8923fa655a",
+      "note_date": "2026-07-25",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-25T03:12:26.725291+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "d94a3933-e672-470f-8101-28f1ca8e4134",
+      "note_date": "2026-07-26",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-26T19:26:55.013883+00:00",
+      "participant_id": "2b566861-d73f-428f-9283-05d51096c056",
+      "participant_name": "Darrell James Twyford"
+    },
+    {
+      "id": "abb3789c-d4bc-4977-a3d7-ae5a082a4894",
+      "note_date": "2026-07-26",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-26T18:11:43.220183+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "b960f792-0d8b-42fa-963c-9d7003dad4eb",
+      "note_date": "2026-07-28",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-28T11:01:57.690348+00:00",
+      "participant_id": "2b566861-d73f-428f-9283-05d51096c056",
+      "participant_name": "Darrell James Twyford"
+    },
+    {
+      "id": "dcacce44-d848-41e4-a7ff-73f863d032a4",
+      "note_date": "2026-07-30",
+      "shift": null,
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-07-30T10:05:46.686055+00:00",
+      "participant_id": "2b566861-d73f-428f-9283-05d51096c056",
+      "participant_name": "Darrell James Twyford"
+    },
+    {
+      "id": "6cd980bc-1025-4506-a11e-2afbb11bcaf6",
+      "note_date": "2026-09-21",
+      "shift": "Afternoon 2pm-10pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-10-15T02:59:57.280168+00:00",
+      "participant_id": null,
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "aeba48b1-5263-46ff-9ce9-7b840d1a196a",
+      "note_date": "2026-09-21",
+      "shift": "4:00pm - 10:00pm",
+      "staff_name": "Vaishali",
+      "created_by": null,
+      "created_at": "2026-10-21T08:16:49.099725+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "1f8fa3b5-8400-400b-816f-8dddf4685885",
+      "note_date": "2026-09-22",
+      "shift": "Night 10pm-6am",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-21T07:27:15.662108+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "6ac260e1-08d0-4edf-90a0-4be19d8acac4",
+      "note_date": "2026-09-22",
+      "shift": "Sleepover 10pm-6am",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-10-15T02:49:40.110251+00:00",
+      "participant_id": null,
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "9bf4b544-2279-4642-9a7d-135f2101ca5c",
+      "note_date": "2026-09-24",
+      "shift": "Afternoon 2pm-10pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-10-15T03:07:39.312906+00:00",
+      "participant_id": null,
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "c3f22ef0-bc1a-4df5-98e7-8cdac93b9b1b",
+      "note_date": "2026-09-24",
+      "shift": "4:00pm - 10:00pm",
+      "staff_name": "Vaishali",
+      "created_by": null,
+      "created_at": "2026-10-21T08:25:10.478085+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "5ff5c921-0caa-4b7a-a0c4-0321599bd2b7",
+      "note_date": "2026-09-27",
+      "shift": "9:00pm - 8:00am",
+      "staff_name": "vishali",
+      "created_by": null,
+      "created_at": "2026-10-21T07:32:04.116353+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "7595a721-62a2-47ed-a736-9972f2662a3d",
+      "note_date": "2026-09-29",
+      "shift": "7:00pm - 7:00am",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-28T07:43:28.256018+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "fbc2fad9-b4e5-4c04-9faa-0b6e890b3d38",
+      "note_date": "2026-10-01",
+      "shift": "4:00pm - 10:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-28T08:02:49.445242+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "d87b13cb-ebca-4cc4-9a0d-a3819b802be0",
+      "note_date": "2026-10-04",
+      "shift": "9:00pm - 8:00am",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-28T08:15:55.929256+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "64c6db45-5d45-4222-86ac-7d0a3fccf0df",
+      "note_date": "2026-10-04",
+      "shift": "10:00am - 4:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-28T08:10:39.490938+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "c3af61bf-81cf-4dc9-a857-68f0be9c9730",
+      "note_date": "2026-10-06",
+      "shift": "3:00pm - 10:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-28T08:19:25.59643+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "4279695a-c474-4c60-8913-bd9bab28f3ab",
+      "note_date": "2026-10-08",
+      "shift": "4:00pm - 10:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-28T08:21:49.325565+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "3f7bdb07-47f2-4b46-82bd-fce9c74aeffd",
+      "note_date": "2026-10-09",
+      "shift": "10:00am - 4:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-28T08:24:31.688314+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "c8e83231-ed42-49b2-b531-f5ac87874866",
+      "note_date": "2026-10-11",
+      "shift": "7:00pm - 8:00am",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-28T08:27:42.725081+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "5b87b443-2e70-4f56-a828-b064faf8f1ef",
+      "note_date": "2026-10-13",
+      "shift": "5:30pm - 10:00pm",
+      "staff_name": "vishali",
+      "created_by": null,
+      "created_at": "2026-10-22T22:39:50.751216+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "eb43a8d6-8024-42e5-98de-e3eca965aba9",
+      "note_date": "2026-10-13",
+      "shift": "5:30pm - 10:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T03:31:37.664233+00:00",
+      "participant_id": "6d9cdc02-913c-478e-89d5-be3cfeb25d3a",
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "20bf1b3c-ec2c-43b2-afe4-4eed7af6cd4f",
+      "note_date": "2026-10-14",
+      "shift": "7:00am - 1:00pm",
+      "staff_name": "Vishali Gill",
+      "created_by": null,
+      "created_at": "2026-10-13T23:51:05.512242+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "ab11bc1c-707c-47e4-93d1-0281a60e3518",
+      "note_date": "2026-10-14",
+      "shift": "7:00am - 1:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T03:34:11.207252+00:00",
+      "participant_id": "6d9cdc02-913c-478e-89d5-be3cfeb25d3a",
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "5d57a527-0f92-414e-b30e-85c4bfcad581",
+      "note_date": "2026-10-15",
+      "shift": "7:00pm - 7:00am",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-22T22:42:41.097011+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "376b66e2-ff95-4562-ba05-e789b55d1b60",
+      "note_date": "2026-10-16",
+      "shift": "7:00pm - 7:00am",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T03:41:41.054248+00:00",
+      "participant_id": "6d9cdc02-913c-478e-89d5-be3cfeb25d3a",
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "409ca958-afd4-4eaf-8490-ef33b6d61b0c",
+      "note_date": "2026-10-17",
+      "shift": "6:00am - 2:30pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-22T22:44:20.428979+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "5f320c9d-0690-4dcc-a3b2-4eb3649c0236",
+      "note_date": "2026-10-17",
+      "shift": "5:30pm - 10:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-22T22:45:39.656018+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "be242916-92ff-4ab5-b981-947e49a49711",
+      "note_date": "2026-10-17",
+      "shift": "5:30pm - 10:30pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T03:42:43.280791+00:00",
+      "participant_id": "6d9cdc02-913c-478e-89d5-be3cfeb25d3a",
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "d3b74c53-faa2-431a-a0b7-04fa20e2cf93",
+      "note_date": "2026-10-18",
+      "shift": "9:00pm - 8:00am",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-22T22:47:23.714397+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "d4f983c0-877b-46e5-aee7-2727d608de70",
+      "note_date": "2026-10-21",
+      "shift": "7:00am - 1:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-23T23:44:09.230875+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "e6945651-7432-479e-b200-10996eb59478",
+      "note_date": "2026-10-21",
+      "shift": "7:00am - 1:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T03:44:35.978028+00:00",
+      "participant_id": "6d9cdc02-913c-478e-89d5-be3cfeb25d3a",
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "2ba59da4-19a4-42a6-a817-a3869202745b",
+      "note_date": "2026-10-21",
+      "shift": "Evening · 4:00pm - 10:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-21T07:29:33.589815+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "44803070-e743-47ff-924f-9ecd94328219",
+      "note_date": "2026-10-21",
+      "shift": "7:00pm - 7:00am",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-23T23:47:08.44504+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "b480c2bc-61ef-44e2-9bac-5a10f25d7ca6",
+      "note_date": "2026-10-22",
+      "shift": "11:30am - 3:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-23T23:45:59.270388+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "b917763e-1f52-4930-8ea5-b663218f7087",
+      "note_date": "2026-10-22",
+      "shift": "7:00pm - 7:00am",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T03:51:27.486239+00:00",
+      "participant_id": "6d9cdc02-913c-478e-89d5-be3cfeb25d3a",
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "af984e08-a928-41c6-80ad-1fed2c2791c6",
+      "note_date": "2026-10-22",
+      "shift": "11:30am - 3:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T03:47:40.598629+00:00",
+      "participant_id": "6d9cdc02-913c-478e-89d5-be3cfeb25d3a",
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "7e04487e-50b5-4477-a448-7a7fe51fe8e5",
+      "note_date": "2026-10-23",
+      "shift": "10:00am - 4:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-23T23:48:07.621914+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "1c43984c-16bb-4214-b2bf-4f0854d28889",
+      "note_date": "2026-10-23",
+      "shift": "10:00am - 4:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T03:53:50.64356+00:00",
+      "participant_id": "6d9cdc02-913c-478e-89d5-be3cfeb25d3a",
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "9f115b9d-e3ec-4861-b1b3-43f209ff578b",
+      "note_date": "2026-10-24",
+      "shift": "8:00am - 2:30pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T03:58:07.855687+00:00",
+      "participant_id": "6d9cdc02-913c-478e-89d5-be3cfeb25d3a",
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "a42dd9f8-5ce3-43c6-b192-73270e2dda0a",
+      "note_date": "2026-10-24",
+      "shift": "8:00am - 2:30pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T03:01:55.129176+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "864045b3-1a74-41b0-9cfb-57d999c54bd9",
+      "note_date": "2026-10-27",
+      "shift": "7:00pm - 7:00am",
+      "staff_name": "vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T20:45:16.874437+00:00",
+      "participant_id": "6d9cdc02-913c-478e-89d5-be3cfeb25d3a",
+      "participant_name": "Antonino Fiorito"
+    },
+    {
+      "id": "f5908ac0-c1d1-4de9-806e-a6e31225b7ad",
+      "note_date": "2026-10-27",
+      "shift": "7:00pm - 7:00am",
+      "staff_name": "vishali",
+      "created_by": null,
+      "created_at": "2026-10-27T20:35:39.841441+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "e0791aeb-5388-46ff-a80d-7ae5fafab386",
+      "note_date": "2026-10-28",
+      "shift": "7:00am - 1:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-28T03:18:49.134182+00:00",
+      "participant_id": "5450d33e-860e-4427-958e-dba91479c001",
+      "participant_name": "John Eric Ross"
+    },
+    {
+      "id": "047fd1a0-cbe8-4853-882b-13f701d72581",
+      "note_date": "2026-10-28",
+      "shift": "7:00am - 1:00pm",
+      "staff_name": "Vishali",
+      "created_by": null,
+      "created_at": "2026-10-28T03:11:11.10754+00:00",
+      "participant_id": "6d9cdc02-913c-478e-89d5-be3cfeb25d3a",
+      "participant_name": "Antonino Fiorito"
+    }
+  ],
+  "byDate": {
+    "2026-03-25": [
+      "6am-12pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-03-26": [
+      "6am-12pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-03-30": [
+      "Afternoon 2pm-10pm (Nathan Gottaas)"
+    ],
+    "2026-03-31": [
+      "Day shift (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-04": [
+      "6-11am (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-05": [
+      "9am-12pm and 12pm-4pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-06": [
+      "10:00pm-6:00am (Sleepover) (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-07": [
+      "10:00pm-6:00am (Sleepover) (Nicole Elizabeth Knight)",
+      "6:00am-12:00pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-09": [
+      "4:00pm-6:00am (incl. Sleepover) (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-10": [
+      "6am-7:30am (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-11": [
+      "6am-12pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-12": [
+      "9:00am-12pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-13": [
+      "4pm-10pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-14": [
+      "4pm-6am (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-15": [
+      "4pm-6am (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-17": [
+      "Morning 6am-12pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-18": [
+      "Morning 8am-12pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-19": [
+      "Morning 8am-12pm (Nicole Elizabeth Knight)",
+      "Leave/Outing (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-21": [
+      "Afternoon 4pm-6am (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-23": [
+      "Afternoon 4pm-6am (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-25": [
+      "Morning 6am-12pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-26": [
+      "Sleepover 8pm-6am (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-28": [
+      "Afternoon 4pm-8pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-04-30": [
+      "Afternoon 4pm-6am (Nicole Elizabeth Knight)"
+    ],
+    "2026-05-03": [
+      "Morning 8am-12pm (Nicole Elizabeth Knight)"
+    ],
+    "2026-05-04": [
+      "Sleepover 6pm-6am (Nicole Elizabeth Knight)"
+    ],
+    "2026-05-05": [
+      "Afternoon 4pm-6am (Nicole Elizabeth Knight)"
+    ],
+    "2026-05-26": [
+      "Afternoon 2pm-10pm (John Eric Ross)"
+    ],
+    "2026-05-27": [
+      "? (John Eric Ross)"
+    ],
+    "2026-05-29": [
+      "Night 10pm-6am (John Eric Ross)"
+    ],
+    "2026-06-02": [
+      "Sleepover 10pm-6am (John Eric Ross)"
+    ],
+    "2026-06-05": [
+      "? (John Eric Ross)"
+    ],
+    "2026-06-06": [
+      "Night 10pm-6am (John Eric Ross)"
+    ],
+    "2026-06-20": [
+      "? (John Eric Ross)"
+    ],
+    "2026-06-21": [
+      "? (John Eric Ross)"
+    ],
+    "2026-06-26": [
+      "? (John Eric Ross)",
+      "? (Darrell James Twyford)"
+    ],
+    "2026-06-27": [
+      "? (Darrell James Twyford)",
+      "? (John Eric Ross)"
+    ],
+    "2026-07-07": [
+      "Afternoon 2pm-10pm (Darrell James Twyford)"
+    ],
+    "2026-07-09": [
+      "2:00pm - 10:00pm (Darrell James Twyford)"
+    ],
+    "2026-07-14": [
+      "? (John Eric Ross)",
+      "? (Darrell James Twyford)"
+    ],
+    "2026-07-21": [
+      "? (Darrell James Twyford)",
+      "? (John Eric Ross)"
+    ],
+    "2026-07-23": [
+      "? (John Eric Ross)",
+      "? (Darrell James Twyford)"
+    ],
+    "2026-07-25": [
+      "? (Darrell James Twyford)",
+      "? (John Eric Ross)"
+    ],
+    "2026-07-26": [
+      "? (Darrell James Twyford)",
+      "? (John Eric Ross)"
+    ],
+    "2026-07-28": [
+      "? (Darrell James Twyford)"
+    ],
+    "2026-07-30": [
+      "? (Darrell James Twyford)"
+    ],
+    "2026-09-21": [
+      "Afternoon 2pm-10pm (Antonino Fiorito)",
+      "4:00pm - 10:00pm (John Eric Ross)"
+    ],
+    "2026-09-22": [
+      "Night 10pm-6am (John Eric Ross)",
+      "Sleepover 10pm-6am (Antonino Fiorito)"
+    ],
+    "2026-09-24": [
+      "Afternoon 2pm-10pm (Antonino Fiorito)",
+      "4:00pm - 10:00pm (John Eric Ross)"
+    ],
+    "2026-09-27": [
+      "9:00pm - 8:00am (John Eric Ross)"
+    ],
+    "2026-09-29": [
+      "7:00pm - 7:00am (John Eric Ross)"
+    ],
+    "2026-10-01": [
+      "4:00pm - 10:00pm (John Eric Ross)"
+    ],
+    "2026-10-04": [
+      "9:00pm - 8:00am (John Eric Ross)",
+      "10:00am - 4:00pm (John Eric Ross)"
+    ],
+    "2026-10-06": [
+      "3:00pm - 10:00pm (John Eric Ross)"
+    ],
+    "2026-10-08": [
+      "4:00pm - 10:00pm (John Eric Ross)"
+    ],
+    "2026-10-09": [
+      "10:00am - 4:00pm (John Eric Ross)"
+    ],
+    "2026-10-11": [
+      "7:00pm - 8:00am (John Eric Ross)"
+    ],
+    "2026-10-13": [
+      "5:30pm - 10:00pm (John Eric Ross)",
+      "5:30pm - 10:00pm (Antonino Fiorito)"
+    ],
+    "2026-10-14": [
+      "7:00am - 1:00pm (John Eric Ross)",
+      "7:00am - 1:00pm (Antonino Fiorito)"
+    ],
+    "2026-10-15": [
+      "7:00pm - 7:00am (John Eric Ross)"
+    ],
+    "2026-10-16": [
+      "7:00pm - 7:00am (Antonino Fiorito)"
+    ],
+    "2026-10-17": [
+      "6:00am - 2:30pm (John Eric Ross)",
+      "5:30pm - 10:00pm (John Eric Ross)",
+      "5:30pm - 10:30pm (Antonino Fiorito)"
+    ],
+    "2026-10-18": [
+      "9:00pm - 8:00am (John Eric Ross)"
+    ],
+    "2026-10-21": [
+      "7:00am - 1:00pm (John Eric Ross)",
+      "7:00am - 1:00pm (Antonino Fiorito)",
+      "Evening · 4:00pm - 10:00pm (John Eric Ross)",
+      "7:00pm - 7:00am (John Eric Ross)"
+    ],
+    "2026-10-22": [
+      "11:30am - 3:00pm (John Eric Ross)",
+      "7:00pm - 7:00am (Antonino Fiorito)",
+      "11:30am - 3:00pm (Antonino Fiorito)"
+    ],
+    "2026-10-23": [
+      "10:00am - 4:00pm (John Eric Ross)",
+      "10:00am - 4:00pm (Antonino Fiorito)"
+    ],
+    "2026-10-24": [
+      "8:00am - 2:30pm (Antonino Fiorito)",
+      "8:00am - 2:30pm (John Eric Ross)"
+    ],
+    "2026-10-27": [
+      "7:00pm - 7:00am (Antonino Fiorito)",
+      "7:00pm - 7:00am (John Eric Ross)"
+    ],
+    "2026-10-28": [
+      "7:00am - 1:00pm (John Eric Ross)",
+      "7:00am - 1:00pm (Antonino Fiorito)"
+    ]
+  }
+}
